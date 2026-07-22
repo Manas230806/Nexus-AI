@@ -101,3 +101,66 @@ export function useMessages(conversationId: string | null) {
 
   return { messages, loading, sendMessage };
 }
+
+export function useNotes(userId: string | null) {
+  const [notes, setNotes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotes = async () => {
+    if (!userId) {
+      setNotes([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const { data } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (data) setNotes(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchNotes();
+  }, [userId]);
+
+  const addNote = async (title: string, content: string, tags: string[] = []) => {
+    if (!userId) return null;
+    const preview = content.slice(0, 100) + (content.length > 100 ? '...' : '');
+    const { data, error } = await supabase.from('notes').insert({
+      user_id: userId,
+      title,
+      content,
+      preview,
+      tags
+    }).select().single();
+    
+    if (data) setNotes(prev => [data, ...prev]);
+    return data;
+  };
+
+  const updateNote = async (id: string, title: string, content: string, tags: string[] = []) => {
+    const preview = content.slice(0, 100) + (content.length > 100 ? '...' : '');
+    const { data, error } = await supabase.from('notes').update({
+      title,
+      content,
+      preview,
+      tags
+    }).eq('id', id).select().single();
+
+    if (data) {
+      setNotes(prev => prev.map(n => n.id === id ? data : n));
+    }
+    return data;
+  };
+
+  const deleteNote = async (id: string) => {
+    await supabase.from('notes').delete().eq('id', id);
+    setNotes(prev => prev.filter(n => n.id !== id));
+  };
+
+  return { notes, loading, addNote, updateNote, deleteNote, refreshNotes: fetchNotes };
+}
