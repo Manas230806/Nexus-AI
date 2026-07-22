@@ -47,13 +47,14 @@ socketHandler(io);
 
 const PORT = process.env.PORT || 4000;
 
+server.listen(PORT, () => {
+  console.log(`Backend server listening on port ${PORT}`);
+});
+
 connectDatabase()
   .then(() => {
-    server.listen(PORT, () => {
-      console.log(`Backend server listening on port ${PORT}`);
-    });
+    console.log('Database connection initialized');
   })
   .catch((error) => {
-    console.error('Failed to start server', error);
-    process.exit(1);
+    console.error('Failed to connect to database in background:', error);
   });
