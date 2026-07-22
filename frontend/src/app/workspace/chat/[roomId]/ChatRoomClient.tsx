@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText } from 'lucide-react';
-import { useMessages } from '../../../../hooks/useMessages';
+import { useMessages } from '../../../../hooks/useSupabase';
 import Shell from '../../../../components/Shell';
 import Link from 'next/link';
 import { supabase } from '../../../../lib/supabaseClient';
@@ -58,8 +58,8 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!draft.trim()) return;
-    await sendMessage(draft.trim());
+    if (!draft.trim() || !currentUserId) return;
+    await sendMessage(draft.trim(), currentUserId);
     setDraft('');
   };
 
