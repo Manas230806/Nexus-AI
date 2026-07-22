@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-main: #070913;
+  --bg-panel: #131627;
+  --bg-sidebar: #0A0D1A;
+  --bg-active: #151930;
+  --bg-hover: rgba(255,255,255,0.05);
+  --bg-hover-strong: rgba(255,255,255,0.1);
+  --text-main: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-strong: #ffffff;
+  --border-color: rgba(255,255,255,0.05);
+  --border-color-strong: rgba(255,255,255,0.1);
+  --border-active: #2D3359;
+  --accent-main: 99, 102, 241; /* indigo */
+  color-scheme: dark;
+}
+
+:root.light {
+  --bg-main: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-sidebar: #f1f5f9;
+  --bg-active: #e2e8f0;
+  --bg-hover: rgba(0,0,0,0.05);
+  --bg-hover-strong: rgba(0,0,0,0.1);
+  --text-main: #334155;
+  --text-muted: #64748b;
+  --text-strong: #0f172a;
+  --border-color: rgba(0,0,0,0.1);
+  --border-color-strong: rgba(0,0,0,0.15);
+  --border-active: #cbd5e1;
+  color-scheme: light;
+}
+
+:root[data-accent="rose"] { --accent-main: 244, 63, 94; }
+:root[data-accent="emerald"] { --accent-main: 16, 185, 129; }
+:root[data-accent="amber"] { --accent-main: 245, 158, 11; }
+:root[data-accent="cyan"] { --accent-main: 6, 182, 212; }
+:root[data-accent="indigo"] { --accent-main: 99, 102, 241; }
+
+html,
+body {
+  height: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-main);
+  color: var(--text-main);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.35);
+  color: white;
+}
+
+/* Logo visibility */
+.logo-light-mode { display: none !important; }
+.logo-dark-mode { display: block !important; }
+:root.light .logo-light-mode { display: block !important; }
+:root.light .logo-dark-mode { display: none !important; }
