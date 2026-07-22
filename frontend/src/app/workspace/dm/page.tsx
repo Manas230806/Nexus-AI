@@ -73,8 +73,12 @@ export default function DirectMessagesPage() {
               conversations.map((conv) => (
                 <Link key={conv.conversation_id} href={`/workspace/chat/${conv.conversation_id}`} className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-all text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]">
                   <div className="flex items-center gap-3">
-                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))]/20 text-[rgb(var(--accent-main))] font-bold shadow-sm">
-                      {conv.users?.avatar_url || 'U'}
+                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))]/20 text-[rgb(var(--accent-main))] font-bold shadow-sm overflow-hidden">
+                      {conv.users?.avatar_url ? (
+                        <img src={conv.users.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+                      ) : (
+                        conv.users?.name?.charAt(0).toUpperCase() || 'U'
+                      )}
                     </div>
                     <div className="flex flex-col items-start overflow-hidden">
                       <span className="font-medium text-[var(--text-strong)] truncate">{conv.users?.name || 'Unknown'}</span>

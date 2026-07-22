@@ -83,8 +83,12 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
           {/* Chat Header */}
           <div className="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4 backdrop-blur-md">
             <div className="flex items-center gap-4">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm">
-                {otherUser ? otherUser.avatar_url : '??'}
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden">
+                {otherUser?.avatar_url ? (
+                  <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+                ) : (
+                  otherUser?.name?.charAt(0).toUpperCase() || '?'
+                )}
                 <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#070913] bg-emerald-500"></div>
               </div>
               <div>
@@ -121,8 +125,14 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
 
                 return (
                   <div key={msg.id} className={`flex gap-4 ${isMe ? 'flex-row-reverse' : ''}`}>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-sm font-bold text-[var(--text-main)] shadow-md border border-[var(--border-color)]">
-                      {isMe ? 'ME' : (otherUser?.avatar_url || 'U')}
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-sm font-bold text-[var(--text-main)] shadow-md border border-[var(--border-color)] overflow-hidden">
+                      {isMe ? 'ME' : (
+                        otherUser?.avatar_url ? (
+                          <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+                        ) : (
+                          otherUser?.name?.charAt(0).toUpperCase() || 'U'
+                        )
+                      )}
                     </div>
                     <div className={`flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
                       <div className="flex items-center gap-2 px-1">
@@ -176,8 +186,12 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
         <div className="hidden lg:flex w-[280px] flex-col bg-[var(--bg-main)]/80 backdrop-blur-md p-6 overflow-y-auto">
           {/* Profile Card */}
           <div className="flex flex-col items-center text-center border-b border-[var(--border-color)] pb-6 mb-6">
-            <div className="h-20 w-20 rounded-[24px] bg-[rgb(var(--accent-main))] flex items-center justify-center text-2xl font-bold text-[var(--text-strong)] shadow-lg shadow-cyan-500/20 mb-4">
-              {otherUser ? otherUser.avatar_url : '??'}
+            <div className="h-20 w-20 rounded-[24px] bg-[rgb(var(--accent-main))] flex items-center justify-center text-2xl font-bold text-[var(--text-strong)] shadow-lg shadow-cyan-500/20 mb-4 overflow-hidden">
+              {otherUser?.avatar_url ? (
+                <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+              ) : (
+                otherUser?.name?.charAt(0).toUpperCase() || '?'
+              )}
             </div>
             <h2 className="text-xl font-bold text-[var(--text-strong)] tracking-tight">{otherUser ? otherUser.name : '...'}</h2>
             <p className="text-sm text-[var(--text-muted)]">Member</p>
