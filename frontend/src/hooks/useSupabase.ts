@@ -138,6 +138,11 @@ export function useNotes(userId: string | null) {
       tags
     }).select().single();
     
+    if (error) {
+      console.error('Error adding note:', error);
+      alert('Error adding note: ' + error.message);
+    }
+    
     if (data) setNotes(prev => [data, ...prev]);
     return data;
   };
@@ -151,6 +156,11 @@ export function useNotes(userId: string | null) {
       tags
     }).eq('id', id).select().single();
 
+    if (error) {
+      console.error('Error updating note:', error);
+      alert('Error updating note: ' + error.message);
+    }
+
     if (data) {
       setNotes(prev => prev.map(n => n.id === id ? data : n));
     }
@@ -158,8 +168,13 @@ export function useNotes(userId: string | null) {
   };
 
   const deleteNote = async (id: string) => {
-    await supabase.from('notes').delete().eq('id', id);
-    setNotes(prev => prev.filter(n => n.id !== id));
+    const { error } = await supabase.from('notes').delete().eq('id', id);
+    if (error) {
+      console.error('Error deleting note:', error);
+      alert('Error deleting note: ' + error.message);
+    } else {
+      setNotes(prev => prev.filter(n => n.id !== id));
+    }
   };
 
   return { notes, loading, addNote, updateNote, deleteNote, refreshNotes: fetchNotes };
