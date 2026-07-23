@@ -116,16 +116,24 @@ export function useMessages(conversationId: string | null) {
   const sendMessage = async (content: string, senderId: string) => {
     if (!conversationId || !content.trim()) return;
     
-    await supabase.from('messages').insert({
+    const { error } = await supabase.from('messages').insert({
       conversation_id: conversationId,
       sender_id: senderId,
       content,
     });
+    if (error) {
+      console.error('Error sending message:', error);
+      alert('Error sending message: ' + error.message);
+    }
   };
 
   const editMessage = async (messageId: string, newContent: string) => {
     if (!newContent.trim()) return;
-    await supabase.from('messages').update({ content: newContent }).eq('id', messageId);
+    const { error } = await supabase.from('messages').update({ content: newContent }).eq('id', messageId);
+    if (error) {
+      console.error('Error editing message:', error);
+      alert('Error editing message: ' + error.message);
+    }
   };
 
   const forwardMessage = async (content: string, targetConversationId: string, senderId: string) => {
