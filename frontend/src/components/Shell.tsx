@@ -175,14 +175,7 @@ export default function Shell({ children }: { children: ReactNode }) {
           <button className="text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--bg-hover)] p-1 rounded transition-colors"><Plus className="h-3 w-3" /></button>
         </div>
 
-        <Link href="/workspace" className="group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] transition-all">
-          <div className="flex items-center gap-3">
-            <Bell className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
-            Notifications
-          </div>
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-[var(--text-strong)]">3</span>
-        </Link>
-        
+
         <button 
           onClick={handleSignOut}
           className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-rose-400 transition-all"
