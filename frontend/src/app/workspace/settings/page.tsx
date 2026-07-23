@@ -83,7 +83,7 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push('/auth/login');
+    window.location.href = '/auth/login';
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

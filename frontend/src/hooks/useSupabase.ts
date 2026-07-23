@@ -274,7 +274,7 @@ export function useWorkspaceFiles(userId: string | null) {
     }
   };
 
-  const createItem = async (folderId: string, name: string, type: string, size: string, file?: File | null) => {
+  const createItem = async (folderId: string, name: string, type: string, size: string, file?: File | null, content?: string) => {
     if (!userId) return;
     
     let fileUrl = null;
@@ -306,7 +306,8 @@ export function useWorkspaceFiles(userId: string | null) {
       name,
       type,
       size,
-      file_url: fileUrl
+      file_url: fileUrl,
+      content: content || null
     }).select().single();
 
     if (error) {

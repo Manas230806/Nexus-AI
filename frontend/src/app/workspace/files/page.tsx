@@ -12,6 +12,18 @@ import { useWorkspaceFiles, useUser } from '../../../hooks/useSupabase';
 
 type FolderItemType = 'document' | 'image' | 'contact' | 'note';
 
+interface FolderItem {
+  id: string;
+  folder_id: string;
+  name: string;
+  type: FolderItemType;
+  size: string;
+  created_at: string;
+  updatedAt: string;
+  file_url?: string;
+  content?: string;
+}
+
 const formatDate = (dateString: string) => {
   return new Intl.DateTimeFormat('en-US', { 
     month: 'short', 
@@ -40,6 +52,8 @@ export default function FilesPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [addItemContent, setAddItemContent] = useState('');
+  const [viewingItem, setViewingItem] = useState<FolderItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredFolders = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
@@ -56,7 +70,7 @@ export default function FilesPage() {
   };
 
   const handleAddItem = async () => {
-    if (!addItemName.trim() || !activeFolderId) return;
+    if (!activeFolder || !addItemName.trim()) return;
     
     let sizeDesc = '1.2 MB';
     if (addItemType === 'document' || addItemType === 'image') {
@@ -68,10 +82,11 @@ export default function FilesPage() {
     }
 
     setIsUploading(true);
-    await createItem(activeFolderId, addItemName.trim(), addItemType, sizeDesc, selectedFile);
+    await createItem(activeFolder.id, addItemName.trim(), addItemType, sizeDesc, selectedFile, addItemContent);
     setIsUploading(false);
 
     setAddItemName('');
+    setAddItemContent('');
     setSelectedFile(null);
     setIsAddItemModalOpen(false);
   };
@@ -227,10 +242,14 @@ export default function FilesPage() {
                         {getItemIcon(item.type)}
                       </div>
                       <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
-                        {['document', 'image'].includes(item.type) && (
+                        {['document', 'image'].includes(item.type) ? (
                           <a href={item.file_url || '#'} target={item.file_url ? "_blank" : "_self"} rel="noreferrer" className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-sky-300">
                             <Download className="h-4 w-4" />
                           </a>
+                        ) : (
+                          <button onClick={() => setViewingItem(item)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-emerald-400">
+                            <AlignLeft className="h-4 w-4" />
+                          </button>
                         )}
                         <button onClick={() => deleteItem(item.id)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-rose-400">
                           <Trash2 className="h-4 w-4" />
@@ -332,8 +351,8 @@ export default function FilesPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-main)] mb-2">
-                    {addItemType === 'document' || addItemType === 'image' ? 'File Name (Mock Upload)' : 
-                     addItemType === 'contact' ? 'Contact Name & Number' : 'Note Title'}
+                    {addItemType === 'document' || addItemType === 'image' ? 'File Name' : 
+                     addItemType === 'contact' ? 'Contact Name' : 'Note Title'}
                   </label>
                   <input 
                     type="text" 
@@ -352,11 +371,13 @@ export default function FilesPage() {
                     className="w-full bg-[var(--bg-main)] border border-[var(--border-color-strong)] text-[var(--text-strong)] rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" 
                   />
                   
-                  {/* Mock content area for note/contact to make it look realistic */}
+                  {/* Content area for note/contact */}
                   {(addItemType === 'contact' || addItemType === 'note') && (
                     <textarea 
                       placeholder={addItemType === 'contact' ? 'Additional contact details...' : 'Type your note here...'}
                       rows={3}
+                      value={addItemContent}
+                      onChange={(e) => setAddItemContent(e.target.value)}
                       className="w-full bg-[var(--bg-main)] border border-[var(--border-color-strong)] text-[var(--text-strong)] rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all mt-3 resize-none"
                     ></textarea>
                   )}
@@ -416,6 +437,44 @@ export default function FilesPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* View Item Modal */}
+      {viewingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--bg-panel)] shadow-2xl border border-[var(--border-color)] overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${viewingItem.type === 'note' ? 'bg-amber-500/20 text-amber-500' : 'bg-rose-500/20 text-rose-500'}`}>
+                  {viewingItem.type === 'note' ? <FileText className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                </div>
+                <div>
+                  <h3 className="font-bold text-[var(--text-strong)]">{viewingItem.name}</h3>
+                  <p className="text-xs text-[var(--text-muted)]">Added {new Date(viewingItem.updatedAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setViewingItem(null)}
+                className="rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-strong)] transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto whitespace-pre-wrap text-[var(--text-main)] font-medium leading-relaxed">
+              {viewingItem.content || <span className="text-[var(--text-muted)] italic">No content provided.</span>}
+            </div>
+            
+            <div className="border-t border-[var(--border-color)] p-4 flex justify-end">
+              <button 
+                onClick={() => setViewingItem(null)}
+                className="rounded-xl px-5 py-2.5 font-medium text-[var(--text-strong)] hover:bg-[var(--bg-hover-strong)] transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }
