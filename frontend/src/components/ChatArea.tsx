@@ -214,51 +214,56 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
                 const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 return (
-                  <div key={msg.id} className={`flex gap-4 ${isMe ? 'flex-row-reverse' : ''}`}>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-sm font-bold text-[var(--text-main)] shadow-md border border-[var(--border-color)] overflow-hidden">
-                      {isMe ? 'ME' : (
-                        isPublicRoom ? (
-                          msg.sender_id?.charAt(0).toUpperCase() || 'U' // Fallback for public room users without profiles loaded
-                        ) : otherUser?.avatar_url ? (
-                          <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
-                        ) : (
-                          otherUser?.name?.charAt(0).toUpperCase() || 'U'
-                        )
-                      )}
-                    </div>
-                    <div className={`flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
-                      <div className="flex items-center gap-2 px-1">
-                        <span className="text-sm font-semibold text-[var(--text-strong)]">
-                          {isMe ? 'You' : (isPublicRoom ? 'User' : otherUser?.name)}
-                        </span>
-                        <span className="text-xs text-[var(--text-muted)]">{timeString}</span>
+                  <div key={msg.id} className={`flex gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    {/* Only show avatars for group/public rooms, not 1-on-1 */}
+                    {isPublicRoom && !isMe && (
+                      <div className="flex h-8 w-8 shrink-0 mt-auto items-center justify-center rounded-full bg-[var(--bg-hover)] text-xs font-bold text-[var(--text-main)] shadow-sm border border-[var(--border-color)] overflow-hidden">
+                        {msg.sender_id?.charAt(0).toUpperCase() || 'U'}
                       </div>
-                      <div className={`relative group px-5 py-3.5 text-[15px] leading-relaxed rounded-[20px] shadow-sm max-w-lg ${
+                    )}
+                    
+                    <div className={`relative group flex flex-col max-w-[85%] sm:max-w-[75%] md:max-w-md lg:max-w-lg ${isMe ? 'items-end' : 'items-start'}`}>
+                      {/* Name for public rooms */}
+                      {isPublicRoom && !isMe && (
+                        <span className="text-xs font-semibold text-[var(--text-muted)] ml-1 mb-1">
+                          User {msg.sender_id?.substring(0, 4)}
+                        </span>
+                      )}
+
+                      <div className={`relative px-3 py-2 text-[15px] leading-relaxed shadow-sm break-words whitespace-pre-wrap ${
                         isMe 
-                          ? 'bg-[rgb(var(--accent-main))] border-none text-white rounded-tr-sm text-left' 
-                          : 'bg-[var(--bg-panel)] border border-[var(--border-color)] text-[var(--text-main)] rounded-tl-sm'
+                          ? 'bg-[#005c4b] text-[#e9edef] rounded-lg rounded-tr-none' 
+                          : 'bg-[#202c33] text-[#e9edef] rounded-lg rounded-tl-none border border-white/5'
                       }`}>
-                        {msg.content}
-                        
-                        {/* Message Actions */}
-                        {isMe && (
-                          <div className="absolute -left-16 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                            <button 
-                              onClick={() => { setEditingMsgId(msg.id); setDraft(msg.content); }}
-                              className="p-1.5 rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-sky-400"
-                              title="Edit Message"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
+                        {/* Action Dropdown Chevron (Hover) */}
+                        <div className={`absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-[#005c4b] to-transparent ${!isMe && 'from-[#202c33]'}`}>
+                          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md rounded px-2 py-1">
+                            {isMe && (
+                              <button 
+                                onClick={() => { setEditingMsgId(msg.id); setDraft(msg.content); }}
+                                className="text-white/80 hover:text-white"
+                                title="Edit Message"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                             <button 
                               onClick={() => setForwardMsg(msg)}
-                              className="p-1.5 rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-emerald-400"
+                              className="text-white/80 hover:text-white"
                               title="Forward Message"
                             >
                               <Forward className="h-3.5 w-3.5" />
                             </button>
                           </div>
-                        )}
+                        </div>
+
+                        {/* Message Content */}
+                        <div className="pr-12 pb-3">{msg.content}</div>
+                        
+                        {/* Time inside bubble */}
+                        <div className="absolute bottom-1.5 right-2 text-[10px] text-white/60">
+                          {timeString}
+                        </div>
                       </div>
                     </div>
                   </div>
