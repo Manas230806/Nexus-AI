@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText } from 'lucide-react';
+import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText, Image as ImageIcon, Calendar, Edit2, Forward, X } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
 import { useMessages } from '../../../../hooks/useSupabase';
 import Shell from '../../../../components/Shell';
 import Link from 'next/link';
@@ -12,12 +13,24 @@ interface ChatRoomClientProps {
 }
 
 export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
-  const { messages, sendMessage } = useMessages(roomId);
+  const { messages, sendMessage, editMessage, forwardMessage } = useMessages(roomId);
   const [draft, setDraft] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
+
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  
+  // Forward modal states
+  const [forwardMsg, setForwardMsg] = useState<any>(null);
+  const [targetUsername, setTargetUsername] = useState('');
+  const [forwardError, setForwardError] = useState('');
+  const [forwarding, setForwarding] = useState(false);
+
+  // Mock Voice Recording state
+  const [isRecording, setIsRecording] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,8 +72,70 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!draft.trim() || !currentUserId) return;
-    await sendMessage(draft.trim(), currentUserId);
+    
+    if (editingMsgId) {
+      await editMessage(editingMsgId, draft.trim());
+      setEditingMsgId(null);
+    } else {
+      await sendMessage(draft.trim(), currentUserId);
+    }
     setDraft('');
+    setShowEmojiPicker(false);
+  };
+
+  const handleMediaUpload = () => {
+    const fileName = prompt("Enter a mock file name to attach (e.g., photo.jpg, document.pdf):");
+    if (fileName && currentUserId) {
+      sendMessage(`[File Attachment] ${fileName}`, currentUserId);
+    }
+  };
+
+  const handleEventCreate = () => {
+    const eventName = prompt("Enter event name for calendar:");
+    if (eventName && currentUserId) {
+      sendMessage(`[EVENT] ${eventName} - Scheduled via Calendar`, currentUserId);
+    }
+  };
+
+  const handleForward = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forwardMsg || !targetUsername.trim() || !currentUserId) return;
+    setForwarding(true);
+    setForwardError('');
+
+    const cleanSearch = targetUsername.trim().toLowerCase().replace('@', '');
+    const { data: targetUser, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', cleanSearch)
+      .single();
+
+    if (userError || !targetUser) {
+      setForwardError('User not found. Please check the username.');
+      setForwarding(false);
+      return;
+    }
+
+    if (currentUserId === targetUser.id) {
+       setForwardError('You cannot forward to yourself!');
+       setForwarding(false);
+       return;
+    }
+
+    const { data: conv } = await supabase.from('conversations').insert([{ type: 'direct' }]).select().single();
+    if (conv) {
+      await supabase.from('participants').insert([
+        { user_id: currentUserId, conversation_id: conv.id },
+        { user_id: targetUser.id, conversation_id: conv.id }
+      ]);
+      await forwardMessage(forwardMsg.content, conv.id, currentUserId);
+      setForwardMsg(null);
+      setTargetUsername('');
+      alert("Message forwarded successfully!");
+    } else {
+      setForwardError('Failed to create conversation for forwarding.');
+    }
+    setForwarding(false);
   };
 
   if (!roomId) {
@@ -139,12 +214,32 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
                         <span className="text-sm font-semibold text-[var(--text-strong)]">{isMe ? 'You' : otherUser?.name}</span>
                         <span className="text-xs text-[var(--text-muted)]">{timeString}</span>
                       </div>
-                      <div className={`relative px-5 py-3.5 text-[15px] leading-relaxed rounded-[20px] shadow-sm max-w-lg ${
+                      <div className={`relative group px-5 py-3.5 text-[15px] leading-relaxed rounded-[20px] shadow-sm max-w-lg ${
                         isMe 
                           ? 'bg-[rgb(var(--accent-main))] border-none text-white rounded-tr-sm text-left' 
                           : 'bg-[var(--bg-panel)] border border-[var(--border-color)] text-[var(--text-main)] rounded-tl-sm'
                       }`}>
                         {msg.content}
+                        
+                        {/* Message Actions */}
+                        {isMe && (
+                          <div className="absolute -left-16 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                            <button 
+                              onClick={() => { setEditingMsgId(msg.id); setDraft(msg.content); }}
+                              className="p-1.5 rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-sky-400"
+                              title="Edit Message"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button 
+                              onClick={() => setForwardMsg(msg)}
+                              className="p-1.5 rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-emerald-400"
+                              title="Forward Message"
+                            >
+                              <Forward className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -155,10 +250,31 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
           </div>
 
           {/* Input Box */}
-          <div className="p-4 mx-auto w-full max-w-3xl">
-            <div className="relative flex flex-col rounded-[24px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-2 shadow-lg transition-all focus-within:border-[rgb(var(--accent-main))]/50">
+          <div className="p-4 mx-auto w-full max-w-3xl relative">
+            {showEmojiPicker && (
+              <div className="absolute bottom-full right-4 mb-2 z-50 shadow-2xl rounded-2xl overflow-hidden border border-[var(--border-color)]">
+                <EmojiPicker 
+                  onEmojiClick={(emojiData) => setDraft(prev => prev + emojiData.emoji)}
+                  theme={'dark' as any}
+                />
+              </div>
+            )}
+            
+            {editingMsgId && (
+              <div className="mb-2 flex items-center justify-between rounded-t-xl bg-[var(--bg-hover)] px-4 py-2 text-sm text-[var(--text-muted)] border border-[var(--border-color)] border-b-0">
+                <div className="flex items-center gap-2">
+                  <Edit2 className="h-4 w-4" />
+                  Editing message
+                </div>
+                <button onClick={() => { setEditingMsgId(null); setDraft(''); }} className="hover:text-[var(--text-strong)]"><X className="h-4 w-4" /></button>
+              </div>
+            )}
+
+            <div className={`relative flex flex-col border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-2 shadow-lg transition-all focus-within:border-[rgb(var(--accent-main))]/50 ${editingMsgId ? 'rounded-b-2xl' : 'rounded-[24px]'}`}>
               <div className="flex items-center gap-2 px-2 pt-1">
-                <button className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"><Plus className="h-5 w-5" /></button>
+                <button onClick={handleMediaUpload} className="text-[var(--text-muted)] hover:text-sky-400 transition-colors" title="Add Photo/Video/Document"><ImageIcon className="h-5 w-5" /></button>
+                <button onClick={handleEventCreate} className="text-[var(--text-muted)] hover:text-emerald-400 transition-colors" title="Schedule Event"><Calendar className="h-5 w-5" /></button>
+                
                 <textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
@@ -169,12 +285,12 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
                     }
                   }}
                   rows={1}
-                  className="max-h-[120px] min-h-[24px] flex-1 resize-none bg-transparent py-2 text-[15px] text-[var(--text-main)] placeholder-slate-500 outline-none scrollbar-hide"
+                  className="max-h-[120px] min-h-[24px] flex-1 resize-none bg-transparent py-2 px-2 text-[15px] text-[var(--text-main)] placeholder-slate-500 outline-none scrollbar-hide"
                   placeholder={otherUser ? `Message ${otherUser.name}...` : 'Type a message...'}
                 />
-                <button className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"><Smile className="h-5 w-5" /></button>
-                <button className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"><Paperclip className="h-5 w-5" /></button>
-                <button className={`ml-2 flex h-9 w-9 items-center justify-center rounded-full transition-all ${draft.trim() ? 'bg-[rgb(var(--accent-main))] text-[var(--text-strong)]' : 'bg-[#1E233E] text-[var(--text-muted)]'}`} onClick={() => handleSend()}>
+                <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`transition-colors ${showEmojiPicker ? 'text-[rgb(var(--accent-main))]' : 'text-[var(--text-muted)] hover:text-yellow-400'}`}><Smile className="h-5 w-5" /></button>
+                <button onClick={() => setIsRecording(!isRecording)} className={`transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'text-[var(--text-muted)] hover:text-rose-400'}`} title="Voice Note"><Mic className="h-5 w-5" /></button>
+                <button className={`ml-2 flex h-9 w-9 items-center justify-center rounded-full transition-all ${draft.trim() ? 'bg-[rgb(var(--accent-main))] text-[var(--text-strong)] hover:opacity-90' : 'bg-[var(--bg-hover)] text-[var(--text-muted)]'}`} onClick={() => handleSend()}>
                   <Send className="h-4 w-4" />
                 </button>
               </div>
@@ -210,6 +326,56 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
         </div>
         </div>
       </div>
+
+      {/* Forward Modal */}
+      {forwardMsg && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-[var(--text-main)]">
+          <div className="w-full max-w-md rounded-3xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-[var(--text-strong)]">Forward Message</h3>
+              <button onClick={() => { setForwardMsg(null); setForwardError(''); }} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="mb-6 p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)] text-sm text-[var(--text-muted)] italic">
+              "{forwardMsg.content.length > 100 ? forwardMsg.content.substring(0, 100) + '...' : forwardMsg.content}"
+            </div>
+
+            {forwardError && (
+              <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+                {forwardError}
+              </div>
+            )}
+
+            <form onSubmit={handleForward} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold uppercase text-[var(--text-muted)]">Forward To Username</label>
+                <div className="relative mt-2">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-bold">@</span>
+                  <input 
+                    autoFocus
+                    type="text" 
+                    value={targetUsername}
+                    onChange={(e) => setTargetUsername(e.target.value)}
+                    placeholder="username"
+                    required
+                    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] py-3 pl-10 pr-4 text-sm text-[var(--text-strong)] outline-none focus:border-[rgb(var(--accent-main))] focus:ring-1 focus:ring-[rgb(var(--accent-main))]"
+                  />
+                </div>
+              </div>
+              <button 
+                type="submit" 
+                disabled={forwarding}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {forwarding ? 'Forwarding...' : 'Send Forward'}
+                <Forward className="h-4 w-4" />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{
         __html: `

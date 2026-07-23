@@ -4,24 +4,42 @@ import { User, Session } from '@supabase/supabase-js';
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchProfile = async (userId: string) => {
+      const { data } = await supabase.from('users').select('*').eq('id', userId).single();
+      if (data) {
+        setUserProfile(data);
+      }
+      setLoading(false);
+    };
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      setLoading(false);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setUserProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  return { user, loading };
+  return { user, userProfile, loading };
 }
 
 export function useMessages(conversationId: string | null) {
@@ -65,21 +83,27 @@ export function useMessages(conversationId: string | null) {
       .channel(`room:${conversationId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+        { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
         (payload: any) => {
-          // Fetch the user data for the new message
-          supabase
-            .from('users')
-            .select('name, avatar_url')
-            .eq('id', payload.new.sender_id)
-            .single()
-            .then(({ data: userData }: { data: any }) => {
-              const newMessage = {
-                ...payload.new,
-                users: userData
-              };
-              setMessages((prev) => [...prev, newMessage]);
-            });
+          if (payload.eventType === 'INSERT') {
+            // Fetch the user data for the new message
+            supabase
+              .from('users')
+              .select('name, avatar_url')
+              .eq('id', payload.new.sender_id)
+              .single()
+              .then(({ data: userData }: { data: any }) => {
+                const newMessage = {
+                  ...payload.new,
+                  users: userData
+                };
+                setMessages((prev) => [...prev, newMessage]);
+              });
+          } else if (payload.eventType === 'UPDATE') {
+            setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? { ...msg, content: payload.new.content } : msg));
+          } else if (payload.eventType === 'DELETE') {
+            setMessages((prev) => prev.filter(msg => msg.id !== payload.old.id));
+          }
         }
       )
       .subscribe();
@@ -99,7 +123,21 @@ export function useMessages(conversationId: string | null) {
     });
   };
 
-  return { messages, loading, sendMessage };
+  const editMessage = async (messageId: string, newContent: string) => {
+    if (!newContent.trim()) return;
+    await supabase.from('messages').update({ content: newContent }).eq('id', messageId);
+  };
+
+  const forwardMessage = async (content: string, targetConversationId: string, senderId: string) => {
+    if (!content.trim()) return;
+    await supabase.from('messages').insert({
+      conversation_id: targetConversationId,
+      sender_id: senderId,
+      content,
+    });
+  };
+
+  return { messages, loading, sendMessage, editMessage, forwardMessage };
 }
 
 export function useNotes(userId: string | null) {

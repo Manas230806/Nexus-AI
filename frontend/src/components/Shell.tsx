@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useUser } from '../hooks/useSupabase';
 import { 
   Bell, CalendarDays, LayoutDashboard, MessageSquareText, 
   Settings, Sparkles, Search, Plus, User, LogOut, Video, 
@@ -26,6 +27,7 @@ const topNavItems = [
 export default function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { userProfile } = useUser();
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -114,6 +116,24 @@ export default function Shell({ children }: { children: ReactNode }) {
           />
         </div>
       </div>
+
+      {userProfile && (
+        <div className="px-4 mb-6">
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden">
+              {userProfile.avatar_url ? (
+                <img src={userProfile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+              ) : (
+                userProfile.name?.charAt(0).toUpperCase() || 'U'
+              )}
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="text-sm font-bold text-[var(--text-strong)] truncate">{userProfile.name}</span>
+              <span className="text-xs text-[var(--text-muted)] truncate">@{userProfile.username}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <nav className="flex-1 space-y-1 px-3 overflow-y-auto scrollbar-hide">
         {topNavItems.map((item) => {

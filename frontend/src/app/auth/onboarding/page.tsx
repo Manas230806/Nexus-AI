@@ -14,8 +14,6 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    
     const handleSession = async (session: any) => {
       setUserAuth(session.user);
       
@@ -37,18 +35,11 @@ export default function OnboardingPage() {
       
       if (session) {
         handleSession(session);
-      } else {
-        // Fallback: If no session immediately, it might be parsing the OAuth URL.
-        // Wait briefly for onAuthStateChange to fire.
-        timeout = setTimeout(() => {
-          router.push('/auth/login');
-        }, 2000);
       }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        clearTimeout(timeout);
         handleSession(session);
       }
     });
@@ -57,7 +48,6 @@ export default function OnboardingPage() {
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
   }, [router]);
 
