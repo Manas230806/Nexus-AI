@@ -9,8 +9,9 @@ import { useUser } from '../hooks/useSupabase';
 import { 
   Bell, CalendarDays, LayoutDashboard, MessageSquareText, 
   Settings, Sparkles, Search, Plus, User, LogOut, Video, 
-  FileText, Briefcase, MessageCircle, Menu, X, ArrowRight
+  FileText, Briefcase, MessageCircle, Menu, X, ArrowRight, Sun, Moon
 } from 'lucide-react';
+import { useTheme } from './ThemeProvider';
 import Logo from './Logo';
 
 const topNavItems = [
@@ -28,6 +29,7 @@ export default function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { userProfile } = useUser();
+  const { theme, toggleTheme } = useTheme();
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -180,6 +182,23 @@ export default function Shell({ children }: { children: ReactNode }) {
           <LogOut className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
           Sign In / Switch Account
         </Link>
+        
+        <button 
+          onClick={toggleTheme}
+          className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] transition-all mt-4"
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
+              Light Mode
+            </>
+          ) : (
+            <>
+              <Moon className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
+              Dark Mode
+            </>
+          )}
+        </button>
       </nav>
     </>
   );

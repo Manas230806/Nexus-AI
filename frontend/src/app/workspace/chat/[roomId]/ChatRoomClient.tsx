@@ -150,15 +150,15 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
 
   return (
     <Shell>
-      <div className="h-full w-full p-6 lg:p-8 overflow-hidden text-[var(--text-main)]">
-        <div className="flex h-full w-full overflow-hidden rounded-[32px] border border-[var(--border-color)] shadow-2xl bg-[var(--bg-main)]">
+      <div className="h-full w-full p-2 sm:p-4 lg:p-8 overflow-hidden text-[var(--text-main)]">
+        <div className="flex h-full w-full overflow-hidden rounded-2xl lg:rounded-[32px] border border-[var(--border-color)] shadow-2xl bg-[var(--bg-main)]">
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col bg-[var(--bg-main)] relative border-r border-[var(--border-color)]">
           {/* Chat Header */}
-          <div className="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4 backdrop-blur-md">
-            <div className="flex items-center gap-4">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--border-color)] px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-md">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden shrink-0">
                 {otherUser?.avatar_url ? (
                   <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                 ) : (
@@ -171,16 +171,16 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
                 <p className="text-xs font-medium text-[var(--text-muted)]">Member · <span className="text-emerald-400">Online</span></p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><Phone className="h-4 w-4" /></button>
-              <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors" title="Start Google Meet"><Video className="h-4 w-4" /></a>
-              <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><Search className="h-4 w-4" /></button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><Phone className="h-4 w-4" /></button>
+              <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors" title="Start Google Meet"><Video className="h-4 w-4" /></a>
+              <button className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><Search className="h-4 w-4" /></button>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 scroll-smooth scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <div className="flex justify-center mb-8">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 scroll-smooth scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="flex justify-center mb-6 sm:mb-8">
               <span className="rounded-full bg-[var(--bg-hover)] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] border border-[var(--border-color)]">
                 Chat Started
               </span>
@@ -250,9 +250,9 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
           </div>
 
           {/* Input Box */}
-          <div className="p-4 mx-auto w-full max-w-3xl relative">
+          <div className="p-2 sm:p-4 mx-auto w-full max-w-3xl relative">
             {showEmojiPicker && (
-              <div className="absolute bottom-full right-4 mb-2 z-50 shadow-2xl rounded-2xl overflow-hidden border border-[var(--border-color)]">
+              <div className="absolute bottom-full right-2 sm:right-4 mb-2 z-50 shadow-2xl rounded-2xl overflow-hidden border border-[var(--border-color)] max-w-[90vw]">
                 <EmojiPicker 
                   onEmojiClick={(emojiData) => setDraft(prev => prev + emojiData.emoji)}
                   theme={'dark' as any}
@@ -261,19 +261,19 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
             )}
             
             {editingMsgId && (
-              <div className="mb-2 flex items-center justify-between rounded-t-xl bg-[var(--bg-hover)] px-4 py-2 text-sm text-[var(--text-muted)] border border-[var(--border-color)] border-b-0">
+              <div className="mb-2 flex items-center justify-between rounded-t-xl bg-[var(--bg-hover)] px-3 sm:px-4 py-2 text-xs sm:text-sm text-[var(--text-muted)] border border-[var(--border-color)] border-b-0">
                 <div className="flex items-center gap-2">
-                  <Edit2 className="h-4 w-4" />
+                  <Edit2 className="h-3 w-3 sm:h-4 sm:w-4" />
                   Editing message
                 </div>
                 <button onClick={() => { setEditingMsgId(null); setDraft(''); }} className="hover:text-[var(--text-strong)]"><X className="h-4 w-4" /></button>
               </div>
             )}
 
-            <div className={`relative flex flex-col border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-2 shadow-lg transition-all focus-within:border-[rgb(var(--accent-main))]/50 ${editingMsgId ? 'rounded-b-2xl' : 'rounded-[24px]'}`}>
-              <div className="flex items-center gap-2 px-2 pt-1">
-                <button onClick={handleMediaUpload} className="text-[var(--text-muted)] hover:text-sky-400 transition-colors" title="Add Photo/Video/Document"><ImageIcon className="h-5 w-5" /></button>
-                <button onClick={handleEventCreate} className="text-[var(--text-muted)] hover:text-emerald-400 transition-colors" title="Schedule Event"><Calendar className="h-5 w-5" /></button>
+            <div className={`relative flex flex-col border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-1.5 sm:p-2 shadow-lg transition-all focus-within:border-[rgb(var(--accent-main))]/50 ${editingMsgId ? 'rounded-b-2xl' : 'rounded-2xl sm:rounded-[24px]'}`}>
+              <div className="flex items-center gap-1 sm:gap-2 px-1 sm:px-2 pt-1 overflow-x-auto scrollbar-hide">
+                <button onClick={handleMediaUpload} className="text-[var(--text-muted)] hover:text-sky-400 transition-colors shrink-0" title="Add Photo/Video/Document"><ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" /></button>
+                <button onClick={handleEventCreate} className="text-[var(--text-muted)] hover:text-emerald-400 transition-colors shrink-0" title="Schedule Event"><Calendar className="h-4 w-4 sm:h-5 sm:w-5" /></button>
                 
                 <textarea
                   value={draft}
@@ -285,13 +285,13 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
                     }
                   }}
                   rows={1}
-                  className="max-h-[120px] min-h-[24px] flex-1 resize-none bg-transparent py-2 px-2 text-[15px] text-[var(--text-main)] placeholder-slate-500 outline-none scrollbar-hide"
+                  className="max-h-[100px] sm:max-h-[120px] min-h-[20px] sm:min-h-[24px] w-full min-w-[120px] shrink-0 md:shrink flex-1 resize-none bg-transparent py-1.5 sm:py-2 px-2 text-[14px] sm:text-[15px] text-[var(--text-main)] placeholder-slate-500 outline-none scrollbar-hide"
                   placeholder={otherUser ? `Message ${otherUser.name}...` : 'Type a message...'}
                 />
-                <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`transition-colors ${showEmojiPicker ? 'text-[rgb(var(--accent-main))]' : 'text-[var(--text-muted)] hover:text-yellow-400'}`}><Smile className="h-5 w-5" /></button>
-                <button onClick={() => setIsRecording(!isRecording)} className={`transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'text-[var(--text-muted)] hover:text-rose-400'}`} title="Voice Note"><Mic className="h-5 w-5" /></button>
-                <button className={`ml-2 flex h-9 w-9 items-center justify-center rounded-full transition-all ${draft.trim() ? 'bg-[rgb(var(--accent-main))] text-[var(--text-strong)] hover:opacity-90' : 'bg-[var(--bg-hover)] text-[var(--text-muted)]'}`} onClick={() => handleSend()}>
-                  <Send className="h-4 w-4" />
+                <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`transition-colors shrink-0 ${showEmojiPicker ? 'text-[rgb(var(--accent-main))]' : 'text-[var(--text-muted)] hover:text-yellow-400'}`}><Smile className="h-4 w-4 sm:h-5 sm:w-5" /></button>
+                <button onClick={() => setIsRecording(!isRecording)} className={`transition-colors shrink-0 ${isRecording ? 'text-red-500 animate-pulse' : 'text-[var(--text-muted)] hover:text-rose-400'}`} title="Voice Note"><Mic className="h-4 w-4 sm:h-5 sm:w-5" /></button>
+                <button className={`ml-1 sm:ml-2 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full transition-all shrink-0 ${draft.trim() ? 'bg-[rgb(var(--accent-main))] text-[var(--text-strong)] hover:opacity-90' : 'bg-[var(--bg-hover)] text-[var(--text-muted)]'}`} onClick={() => handleSend()}>
+                  <Send className="h-3 w-3 sm:h-4 sm:w-4" />
                 </button>
               </div>
             </div>
