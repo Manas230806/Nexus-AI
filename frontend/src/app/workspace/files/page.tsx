@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { 
   FileText, Folder, Image as ImageIcon, MoreVertical, Search, 
   UploadCloud, File, Download, Trash2, X, Plus, Users, AlignLeft, 
@@ -39,6 +39,8 @@ export default function FilesPage() {
   const [addItemName, setAddItemName] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredFolders = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
   
@@ -360,15 +362,29 @@ export default function FilesPage() {
                   )}
                   
                   {(addItemType === 'document' || addItemType === 'image') && (
-                    <label className="mt-3 flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed border-[var(--border-color-strong)] p-6 bg-[var(--bg-hover)] text-[var(--text-muted)] hover:bg-[var(--bg-hover-strong)] hover:border-[var(--border-color)] transition-all cursor-pointer">
-                      <span className="text-sm font-medium flex flex-col items-center gap-2">
-                        <UploadCloud className="h-6 w-6 mb-1" /> 
-                        <span className="text-center">{selectedFile ? selectedFile.name : 'Click to browse or drag file here'}</span>
+                    <div 
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                      onDrop={(e) => { 
+                        e.preventDefault(); 
+                        setIsDragging(false); 
+                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                          setSelectedFile(e.dataTransfer.files[0]);
+                          if (!addItemName) setAddItemName(e.dataTransfer.files[0].name);
+                        }
+                      }}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`mt-3 flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed p-6 transition-all cursor-pointer ${isDragging ? 'border-emerald-500 bg-emerald-500/10' : 'border-[var(--border-color-strong)] bg-[var(--bg-hover)] hover:bg-[var(--bg-hover-strong)] hover:border-[var(--border-color)]'} text-[var(--text-muted)]`}
+                    >
+                      <span className="text-sm font-medium flex flex-col items-center gap-2 pointer-events-none">
+                        <UploadCloud className={`h-6 w-6 mb-1 ${isDragging ? 'text-emerald-500' : ''}`} /> 
+                        <span className={`text-center ${isDragging ? 'text-emerald-500' : ''}`}>{selectedFile ? selectedFile.name : (isDragging ? 'Drop file here' : 'Click to browse or drag file here')}</span>
                         {selectedFile && <span className="text-xs opacity-70">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>}
                       </span>
                       <input 
                         type="file" 
-                        className="hidden" 
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             setSelectedFile(e.target.files[0]);
@@ -376,7 +392,7 @@ export default function FilesPage() {
                           }
                         }} 
                       />
-                    </label>
+                    </div>
                   )}
                 </div>
               </div>
