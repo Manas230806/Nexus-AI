@@ -37,6 +37,8 @@ export default function FilesPage() {
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [addItemType, setAddItemType] = useState<FolderItemType>('document');
   const [addItemName, setAddItemName] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const filteredFolders = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
   
@@ -55,12 +57,20 @@ export default function FilesPage() {
     if (!addItemName.trim() || !activeFolderId) return;
     
     let sizeDesc = '1.2 MB';
-    if (addItemType === 'contact') sizeDesc = 'Contact Info';
-    if (addItemType === 'note') sizeDesc = 'Text Note';
+    if (addItemType === 'document' || addItemType === 'image') {
+      sizeDesc = selectedFile ? (selectedFile.size / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown Size';
+    } else if (addItemType === 'contact') {
+      sizeDesc = 'Contact Info';
+    } else if (addItemType === 'note') {
+      sizeDesc = 'Text Note';
+    }
 
-    await createItem(activeFolderId, addItemName.trim(), addItemType, sizeDesc);
+    setIsUploading(true);
+    await createItem(activeFolderId, addItemName.trim(), addItemType, sizeDesc, selectedFile);
+    setIsUploading(false);
 
     setAddItemName('');
+    setSelectedFile(null);
     setIsAddItemModalOpen(false);
   };
 
@@ -216,9 +226,9 @@ export default function FilesPage() {
                       </div>
                       <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
                         {['document', 'image'].includes(item.type) && (
-                          <button className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-sky-300">
+                          <a href={item.file_url || '#'} target={item.file_url ? "_blank" : "_self"} rel="noreferrer" className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-sky-300">
                             <Download className="h-4 w-4" />
-                          </button>
+                          </a>
                         )}
                         <button onClick={() => deleteItem(item.id)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-rose-400">
                           <Trash2 className="h-4 w-4" />
@@ -350,18 +360,41 @@ export default function FilesPage() {
                   )}
                   
                   {(addItemType === 'document' || addItemType === 'image') && (
-                    <div className="mt-3 flex items-center justify-center w-full rounded-xl border-2 border-dashed border-[var(--border-color-strong)] p-6 bg-[var(--bg-hover)] text-[var(--text-muted)] hover:bg-[var(--bg-hover-strong)] hover:border-[var(--border-color)] transition-all cursor-pointer">
-                      <span className="text-sm font-medium flex items-center gap-2">
-                        <UploadCloud className="h-4 w-4" /> Click to browse or drag file here
+                    <label className="mt-3 flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed border-[var(--border-color-strong)] p-6 bg-[var(--bg-hover)] text-[var(--text-muted)] hover:bg-[var(--bg-hover-strong)] hover:border-[var(--border-color)] transition-all cursor-pointer">
+                      <span className="text-sm font-medium flex flex-col items-center gap-2">
+                        <UploadCloud className="h-6 w-6 mb-1" /> 
+                        <span className="text-center">{selectedFile ? selectedFile.name : 'Click to browse or drag file here'}</span>
+                        {selectedFile && <span className="text-xs opacity-70">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>}
                       </span>
-                    </div>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setSelectedFile(e.target.files[0]);
+                            if (!addItemName) setAddItemName(e.target.files[0].name);
+                          }
+                        }} 
+                      />
+                    </label>
                   )}
                 </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border-color)] shrink-0">
                 <button onClick={() => setIsAddItemModalOpen(false)} className="px-5 py-2.5 rounded-xl font-semibold text-[var(--text-main)] hover:bg-[var(--bg-hover)] transition-colors">Cancel</button>
-                <button onClick={handleAddItem} className="px-5 py-2.5 rounded-xl font-semibold bg-emerald-500 text-white shadow-md hover:bg-emerald-400 transition-colors">Save Item</button>
+                <button 
+                  onClick={handleAddItem} 
+                  disabled={isUploading}
+                  className="px-5 py-2.5 rounded-xl font-semibold bg-emerald-500 text-white shadow-md hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
+                      Saving...
+                    </>
+                  ) : 'Save Item'}
+                </button>
               </div>
             </motion.div>
           </div>

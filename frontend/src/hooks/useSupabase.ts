@@ -274,14 +274,39 @@ export function useWorkspaceFiles(userId: string | null) {
     }
   };
 
-  const createItem = async (folderId: string, name: string, type: string, size: string) => {
+  const createItem = async (folderId: string, name: string, type: string, size: string, file?: File | null) => {
     if (!userId) return;
+    
+    let fileUrl = null;
+
+    if (file && (type === 'document' || type === 'image')) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${folderId}/${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('workspace_files')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        alert('Error uploading file: ' + uploadError.message);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('workspace_files')
+        .getPublicUrl(fileName);
+        
+      fileUrl = publicUrlData.publicUrl;
+    }
+
     const { data, error } = await supabase.from('workspace_items').insert({
       folder_id: folderId,
       user_id: userId,
       name,
       type,
-      size
+      size,
+      file_url: fileUrl
     }).select().single();
 
     if (error) {
