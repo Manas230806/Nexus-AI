@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Settings, User, Bell, Shield, Moon, Sun, Monitor, Paintbrush, Save, X, Upload } from 'lucide-react';
+import { Settings, User, Bell, Shield, Moon, Sun, Monitor, Paintbrush, Save, X, Upload, LogOut } from 'lucide-react';
 import Shell from '../../../components/Shell';
 import { supabase } from '../../../lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 
 const DEFAULT_AVATARS = [
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
@@ -14,6 +15,7 @@ const DEFAULT_AVATARS = [
 ];
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'profile' | 'appearance'>('appearance');
   const [theme, setTheme] = useState<'system' | 'light' | 'dark'>('dark');
   const [accent, setAccent] = useState<'indigo' | 'rose' | 'emerald' | 'amber' | 'cyan'>('indigo');
@@ -77,6 +79,11 @@ export default function SettingsPage() {
     setAvatarUrl(url);
     await supabase.from('users').update({ avatar_url: url }).eq('id', userId);
     setIsAvatarModalOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth/login');
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,14 +270,20 @@ export default function SettingsPage() {
                        </div>
                      </div>
                    
-                   <div className="mt-8 border-t border-[var(--border-color)] pt-6 flex justify-end">
-                     <button 
-                       onClick={handleSaveProfile}
-                       className="flex items-center gap-2 px-6 py-2.5 bg-[rgb(var(--accent-main))] text-white text-sm font-semibold rounded-lg shadow-md hover:opacity-90 transition-opacity"
-                     >
-                       <Save className="h-4 w-4" /> Save Changes
-                     </button>
-                   </div>
+                     <div className="mt-8 border-t border-[var(--border-color)] pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                      <button 
+                        onClick={handleSignOut}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-rose-500/10 text-rose-500 text-sm font-semibold rounded-lg hover:bg-rose-500/20 transition-colors w-full sm:w-auto justify-center"
+                      >
+                        <LogOut className="h-4 w-4" /> Sign Out
+                      </button>
+                      <button 
+                        onClick={handleSaveProfile}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-[rgb(var(--accent-main))] text-white text-sm font-semibold rounded-lg shadow-md hover:opacity-90 transition-opacity w-full sm:w-auto justify-center"
+                      >
+                        <Save className="h-4 w-4" /> Save Changes
+                      </button>
+                    </div>
                 </div>
               </>
             )}

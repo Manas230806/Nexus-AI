@@ -33,6 +33,11 @@ export default function Shell({ children }: { children: ReactNode }) {
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth/login');
+  };
+  
   // New Message State
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
   const [searchUsername, setSearchUsername] = useState('');
@@ -178,10 +183,13 @@ export default function Shell({ children }: { children: ReactNode }) {
           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-[var(--text-strong)]">3</span>
         </Link>
         
-        <Link href="/auth/login" className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] transition-all">
-          <LogOut className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
-          Sign In / Switch Account
-        </Link>
+        <button 
+          onClick={handleSignOut}
+          className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-rose-400 transition-all"
+        >
+          <LogOut className="h-4 w-4 text-[var(--text-muted)] group-hover:text-rose-400" />
+          Sign Out
+        </button>
         
         <button 
           onClick={toggleTheme}
