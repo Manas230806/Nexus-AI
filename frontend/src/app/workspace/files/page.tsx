@@ -4,49 +4,27 @@ import { useState } from 'react';
 import { 
   FileText, Folder, Image as ImageIcon, MoreVertical, Search, 
   UploadCloud, File, Download, Trash2, X, Plus, Users, AlignLeft, 
-  ChevronRight, ArrowLeft
+  ArrowLeft
 } from 'lucide-react';
 import Shell from '../../../components/Shell';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useWorkspaceFiles, useUser } from '../../../hooks/useSupabase';
 
 type FolderItemType = 'document' | 'image' | 'contact' | 'note';
 
-type FolderItem = {
-  id: string;
-  name: string;
-  type: FolderItemType;
-  size: string; // or content preview for notes/contacts
-  updatedAt: string;
+const formatDate = (dateString: string) => {
+  return new Intl.DateTimeFormat('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(new Date(dateString));
 };
-
-type WorkspaceFolder = {
-  id: string;
-  name: string;
-  updatedAt: string;
-  items: FolderItem[];
-};
-
-const initialFolders: WorkspaceFolder[] = [
-  { 
-    id: '1', 
-    name: 'Design Assets', 
-    updatedAt: '2 hours ago',
-    items: [
-      { id: '101', name: 'hero-banner-v2.png', type: 'image', size: '4.1 MB', updatedAt: '2 hours ago' }
-    ]
-  },
-  { 
-    id: '2', 
-    name: 'Q3 Roadmaps', 
-    updatedAt: '1 day ago',
-    items: [
-      { id: '201', name: 'Project_Alpha_Brief.pdf', type: 'document', size: '2.4 MB', updatedAt: '1 day ago' }
-    ]
-  },
-];
 
 export default function FilesPage() {
-  const [folders, setFolders] = useState<WorkspaceFolder[]>(initialFolders);
+  const { user } = useUser();
+  const { folders, items, loading, createFolder, deleteFolder, createItem, deleteItem } = useWorkspaceFiles(user?.id || null);
+
   const [search, setSearch] = useState('');
   
   // Navigation State
@@ -63,63 +41,36 @@ export default function FilesPage() {
   const filteredFolders = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
   
   const activeFolder = folders.find(f => f.id === activeFolderId);
-  const filteredItems = activeFolder?.items.filter(i => i.name.toLowerCase().includes(search.toLowerCase())) || [];
+  const folderItems = items.filter(i => i.folder_id === activeFolderId);
+  const filteredItems = folderItems.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
-    const newFolder: WorkspaceFolder = {
-      id: Math.random().toString(),
-      name: newFolderName.trim(),
-      updatedAt: 'Just now',
-      items: []
-    };
-    setFolders([newFolder, ...folders]);
+    await createFolder(newFolderName.trim());
     setNewFolderName('');
     setIsNewFolderModalOpen(false);
   };
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!addItemName.trim() || !activeFolderId) return;
     
     let sizeDesc = '1.2 MB';
     if (addItemType === 'contact') sizeDesc = 'Contact Info';
     if (addItemType === 'note') sizeDesc = 'Text Note';
 
-    const newItem: FolderItem = {
-      id: Math.random().toString(),
-      name: addItemName.trim(),
-      type: addItemType,
-      size: sizeDesc,
-      updatedAt: 'Just now'
-    };
-
-    setFolders(folders.map(f => {
-      if (f.id === activeFolderId) {
-        return { ...f, items: [newItem, ...f.items], updatedAt: 'Just now' };
-      }
-      return f;
-    }));
+    await createItem(activeFolderId, addItemName.trim(), addItemType, sizeDesc);
 
     setAddItemName('');
     setIsAddItemModalOpen(false);
   };
 
-  const deleteFolder = (id: string, e: React.MouseEvent) => {
+  const handleDeleteFolder = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFolders(folders.filter(f => f.id !== id));
+    deleteFolder(id);
+    if (activeFolderId === id) setActiveFolderId(null);
   };
 
-  const deleteItem = (id: string) => {
-    if (!activeFolderId) return;
-    setFolders(folders.map(f => {
-      if (f.id === activeFolderId) {
-        return { ...f, items: f.items.filter(i => i.id !== id) };
-      }
-      return f;
-    }));
-  };
-
-  const getItemIcon = (type: FolderItemType) => {
+  const getItemIcon = (type: string) => {
     switch (type) {
       case 'image': return <ImageIcon className="h-6 w-6 text-violet-400" />;
       case 'document': return <FileText className="h-6 w-6 text-emerald-400" />;
@@ -145,7 +96,7 @@ export default function FilesPage() {
               {activeFolderId ? activeFolder?.name : 'Files & Documents'}
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)]">
-              {activeFolderId ? `${activeFolder?.items.length} items inside` : 'Manage your workspace folders and shared files.'}
+              {activeFolderId ? `${folderItems.length} items inside` : 'Manage your workspace folders and shared files.'}
             </p>
           </div>
           
@@ -184,7 +135,12 @@ export default function FilesPage() {
         {/* Content Grid */}
         <div className="flex-1 overflow-y-auto rounded-[28px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)]/40 p-6 shadow-xl backdrop-blur-xl scrollbar-hide min-h-[400px]">
           
-          {!activeFolderId ? (
+          {loading ? (
+            <div className="flex h-full flex-col items-center justify-center py-20 text-[var(--text-muted)]">
+               <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--border-color-strong)] border-t-sky-500 mb-4"></div>
+               Loading workspace...
+            </div>
+          ) : !activeFolderId ? (
             /* FOLDERS VIEW */
             filteredFolders.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center py-20">
@@ -196,38 +152,41 @@ export default function FilesPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredFolders.map((folder) => (
-                  <motion.div 
-                    key={folder.id}
-                    layout
-                    onClick={() => {
-                      setActiveFolderId(folder.id);
-                      setSearch('');
-                    }}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ y: -4, borderColor: 'rgba(56, 189, 248, 0.4)' }}
-                    className="group relative flex flex-col rounded-[24px] border border-[var(--border-color-strong)] bg-[var(--bg-hover)] p-5 transition-all hover:bg-[var(--bg-hover-strong)] hover:shadow-[0_10px_40px_rgba(56,189,248,0.1)] cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-panel)]/50 shadow-inner">
-                        <Folder className="h-6 w-6 text-sky-400" fill="currentColor" fillOpacity={0.2} />
+                {filteredFolders.map((folder) => {
+                  const itemsInFolder = items.filter(i => i.folder_id === folder.id);
+                  return (
+                    <motion.div 
+                      key={folder.id}
+                      layout
+                      onClick={() => {
+                        setActiveFolderId(folder.id);
+                        setSearch('');
+                      }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ y: -4, borderColor: 'rgba(56, 189, 248, 0.4)' }}
+                      className="group relative flex flex-col rounded-[24px] border border-[var(--border-color-strong)] bg-[var(--bg-hover)] p-5 transition-all hover:bg-[var(--bg-hover-strong)] hover:shadow-[0_10px_40px_rgba(56,189,248,0.1)] cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-panel)]/50 shadow-inner">
+                          <Folder className="h-6 w-6 text-sky-400" fill="currentColor" fillOpacity={0.2} />
+                        </div>
+                        <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
+                          <button onClick={(e) => handleDeleteFolder(folder.id, e)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-rose-400">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
-                        <button onClick={(e) => deleteFolder(folder.id, e)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-rose-400">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                      <div className="mt-4">
+                        <p className="truncate font-bold text-[var(--text-main)]" title={folder.name}>{folder.name}</p>
+                        <div className="mt-1 flex items-center justify-between text-xs font-medium text-[var(--text-muted)]">
+                          <span>{itemsInFolder.length} item{itemsInFolder.length !== 1 ? 's' : ''}</span>
+                          <span>{formatDate(folder.created_at)}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-4">
-                      <p className="truncate font-bold text-[var(--text-main)]" title={folder.name}>{folder.name}</p>
-                      <div className="mt-1 flex items-center justify-between text-xs font-medium text-[var(--text-muted)]">
-                        <span>{folder.items.length} item{folder.items.length !== 1 ? 's' : ''}</span>
-                        <span>{folder.updatedAt}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  )
+                })}
               </div>
             )
           ) : (
@@ -270,7 +229,7 @@ export default function FilesPage() {
                       <p className="truncate font-medium text-[var(--text-main)]" title={item.name}>{item.name}</p>
                       <div className="mt-1 flex items-center justify-between text-xs text-[var(--text-muted)]">
                         <span>{item.size}</span>
-                        <span>{item.updatedAt}</span>
+                        <span>{formatDate(item.created_at)}</span>
                       </div>
                     </div>
                   </motion.div>

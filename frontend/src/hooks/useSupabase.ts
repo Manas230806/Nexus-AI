@@ -217,3 +217,91 @@ export function useNotes(userId: string | null) {
 
   return { notes, loading, addNote, updateNote, deleteNote, refreshNotes: fetchNotes };
 }
+
+export function useWorkspaceFiles(userId: string | null) {
+  const [folders, setFolders] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchWorkspace = async () => {
+    if (!userId) {
+      setFolders([]);
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+
+    const [foldersRes, itemsRes] = await Promise.all([
+      supabase.from('workspace_folders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      supabase.from('workspace_items').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+    ]);
+
+    if (foldersRes.data) setFolders(foldersRes.data);
+    if (itemsRes.data) setItems(itemsRes.data);
+    
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchWorkspace();
+  }, [userId]);
+
+  const createFolder = async (name: string) => {
+    if (!userId) return;
+    const { data, error } = await supabase.from('workspace_folders').insert({
+      user_id: userId,
+      name
+    }).select().single();
+
+    if (error) {
+      console.error('Error creating folder:', error);
+      alert('Error creating folder: ' + error.message);
+    } else if (data) {
+      setFolders(prev => [data, ...prev]);
+    }
+    return data;
+  };
+
+  const deleteFolder = async (id: string) => {
+    const { error } = await supabase.from('workspace_folders').delete().eq('id', id);
+    if (error) {
+      console.error('Error deleting folder:', error);
+      alert('Error deleting folder: ' + error.message);
+    } else {
+      setFolders(prev => prev.filter(f => f.id !== id));
+      setItems(prev => prev.filter(i => i.folder_id !== id));
+    }
+  };
+
+  const createItem = async (folderId: string, name: string, type: string, size: string) => {
+    if (!userId) return;
+    const { data, error } = await supabase.from('workspace_items').insert({
+      folder_id: folderId,
+      user_id: userId,
+      name,
+      type,
+      size
+    }).select().single();
+
+    if (error) {
+      console.error('Error creating item:', error);
+      alert('Error creating item: ' + error.message);
+    } else if (data) {
+      setItems(prev => [data, ...prev]);
+    }
+    return data;
+  };
+
+  const deleteItem = async (id: string) => {
+    const { error } = await supabase.from('workspace_items').delete().eq('id', id);
+    if (error) {
+      console.error('Error deleting item:', error);
+      alert('Error deleting item: ' + error.message);
+    } else {
+      setItems(prev => prev.filter(i => i.id !== id));
+    }
+  };
+
+  return { folders, items, loading, createFolder, deleteFolder, createItem, deleteItem, refreshWorkspace: fetchWorkspace };
+}
