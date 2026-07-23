@@ -19,6 +19,7 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
+  const [isPublicRoom, setIsPublicRoom] = useState<string | null>(null);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
@@ -47,6 +48,17 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
       if (!session) return;
       const myId = session.user.id;
       setCurrentUserId(myId);
+
+      const PUBLIC_ROOMS: Record<string, string> = {
+        'room-1': 'General',
+        'room-2': 'Product',
+        'room-3': 'Engineering'
+      };
+
+      if (PUBLIC_ROOMS[roomId]) {
+        setIsPublicRoom(PUBLIC_ROOMS[roomId]);
+        return;
+      }
 
       // 2. Get participants in this room to find the "other" person
       const { data: participants } = await supabase
@@ -159,7 +171,9 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
           <div className="flex items-center justify-between border-b border-[var(--border-color)] px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-md">
             <div className="flex items-center gap-2 sm:gap-4">
               <div className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden shrink-0">
-                {otherUser?.avatar_url ? (
+                {isPublicRoom ? (
+                  <Hash className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                ) : otherUser?.avatar_url ? (
                   <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                 ) : (
                   otherUser?.name?.charAt(0).toUpperCase() || '?'
@@ -167,8 +181,13 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
                 <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#070913] bg-emerald-500"></div>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-[var(--text-strong)] tracking-tight">{otherUser ? otherUser.name : 'Loading...'}</h1>
-                <p className="text-xs font-medium text-[var(--text-muted)]">Member · <span className="text-emerald-400">Online</span></p>
+                <h1 className="text-lg font-bold text-[var(--text-strong)] tracking-tight">
+                  {isPublicRoom ? isPublicRoom : (otherUser ? otherUser.name : 'Loading...')}
+                </h1>
+                <p className="text-xs font-medium text-[var(--text-muted)]">
+                  {isPublicRoom ? 'Public Room · Everyone' : 'Member · '}
+                  {!isPublicRoom && <span className="text-emerald-400">Online</span>}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
@@ -202,7 +221,9 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
                   <div key={msg.id} className={`flex gap-4 ${isMe ? 'flex-row-reverse' : ''}`}>
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-sm font-bold text-[var(--text-main)] shadow-md border border-[var(--border-color)] overflow-hidden">
                       {isMe ? 'ME' : (
-                        otherUser?.avatar_url ? (
+                        isPublicRoom ? (
+                          msg.sender_id?.charAt(0).toUpperCase() || 'U' // Fallback for public room users without profiles loaded
+                        ) : otherUser?.avatar_url ? (
                           <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                         ) : (
                           otherUser?.name?.charAt(0).toUpperCase() || 'U'
@@ -211,7 +232,9 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
                     </div>
                     <div className={`flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
                       <div className="flex items-center gap-2 px-1">
-                        <span className="text-sm font-semibold text-[var(--text-strong)]">{isMe ? 'You' : otherUser?.name}</span>
+                        <span className="text-sm font-semibold text-[var(--text-strong)]">
+                          {isMe ? 'You' : (isPublicRoom ? 'User' : otherUser?.name)}
+                        </span>
                         <span className="text-xs text-[var(--text-muted)]">{timeString}</span>
                       </div>
                       <div className={`relative group px-5 py-3.5 text-[15px] leading-relaxed rounded-[20px] shadow-sm max-w-lg ${
@@ -286,7 +309,7 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
                   }}
                   rows={1}
                   className="max-h-[100px] sm:max-h-[120px] min-h-[20px] sm:min-h-[24px] w-full min-w-[120px] shrink-0 md:shrink flex-1 resize-none bg-transparent py-1.5 sm:py-2 px-2 text-[14px] sm:text-[15px] text-[var(--text-main)] placeholder-slate-500 outline-none scrollbar-hide"
-                  placeholder={otherUser ? `Message ${otherUser.name}...` : 'Type a message...'}
+                  placeholder={isPublicRoom ? `Message #${isPublicRoom}...` : (otherUser ? `Message ${otherUser.name}...` : 'Type a message...')}
                 />
                 <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`transition-colors shrink-0 ${showEmojiPicker ? 'text-[rgb(var(--accent-main))]' : 'text-[var(--text-muted)] hover:text-yellow-400'}`}><Smile className="h-4 w-4 sm:h-5 sm:w-5" /></button>
                 <button onClick={() => setIsRecording(!isRecording)} className={`transition-colors shrink-0 ${isRecording ? 'text-red-500 animate-pulse' : 'text-[var(--text-muted)] hover:text-rose-400'}`} title="Voice Note"><Mic className="h-4 w-4 sm:h-5 sm:w-5" /></button>
