@@ -232,10 +232,17 @@ export default function FilesPage() {
                   <motion.div 
                     key={item.id}
                     layout
+                    onClick={() => {
+                      if (['document', 'image'].includes(item.type) && item.file_url) {
+                        window.open(item.file_url, '_blank');
+                      } else {
+                        setViewingItem(item);
+                      }
+                    }}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     whileHover={{ y: -4, borderColor: 'rgba(56, 189, 248, 0.4)' }}
-                    className="group relative flex flex-col rounded-[24px] border border-[var(--border-color-strong)] bg-[var(--bg-hover)] p-5 transition-all hover:bg-[var(--bg-hover-strong)] hover:shadow-[0_10px_40px_rgba(56,189,248,0.1)]"
+                    className="group relative flex flex-col rounded-[24px] border border-[var(--border-color-strong)] bg-[var(--bg-hover)] p-5 transition-all hover:bg-[var(--bg-hover-strong)] hover:shadow-[0_10px_40px_rgba(56,189,248,0.1)] cursor-pointer"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-panel)]/50 shadow-inner">
@@ -243,15 +250,15 @@ export default function FilesPage() {
                       </div>
                       <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
                         {['document', 'image'].includes(item.type) ? (
-                          <a href={item.file_url || '#'} target={item.file_url ? "_blank" : "_self"} rel="noreferrer" className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-sky-300">
+                          <a href={item.file_url || '#'} onClick={(e) => e.stopPropagation()} target={item.file_url ? "_blank" : "_self"} rel="noreferrer" className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-sky-300">
                             <Download className="h-4 w-4" />
                           </a>
                         ) : (
-                          <button onClick={() => setViewingItem(item)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-emerald-400">
+                          <button onClick={(e) => { e.stopPropagation(); setViewingItem(item); }} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-emerald-400">
                             <AlignLeft className="h-4 w-4" />
                           </button>
                         )}
-                        <button onClick={() => deleteItem(item.id)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-rose-400">
+                        <button onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover-strong)] text-[var(--text-muted)] hover:text-rose-400">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -449,7 +456,7 @@ export default function FilesPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-[var(--text-strong)]">{viewingItem.name}</h3>
-                  <p className="text-xs text-[var(--text-muted)]">Added {new Date(viewingItem.updatedAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-[var(--text-muted)]">Added {new Date(viewingItem.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
               <button 
