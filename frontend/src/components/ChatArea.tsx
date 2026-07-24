@@ -50,7 +50,7 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
 
       const PUBLIC_ROOMS: Record<string, string> = {
         '11111111-1111-1111-1111-111111111111': 'General',
-        '22222222-2222-2222-2222-222222222222': 'Community',
+        '22222222-2222-2222-2222-222222222222': 'Product',
         '33333333-3333-3333-3333-333333333333': 'Engineering'
       };
 
