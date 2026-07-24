@@ -108,7 +108,7 @@ export default function DirectMessagesPage() {
 
   return (
     <Shell>
-      <div className="flex h-[100dvh] md:h-full w-full overflow-hidden text-[var(--text-main)] relative">
+      <div className="flex h-full w-full overflow-hidden text-[var(--text-main)] relative">
         
         {/* DM Sidebar List */}
         <div className={`flex flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] backdrop-blur-sm shrink-0 w-full md:w-[320px] lg:w-[360px] ${activeConversationId ? 'hidden md:flex' : 'flex'}`}>

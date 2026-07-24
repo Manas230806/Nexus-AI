@@ -252,7 +252,7 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
                         </span>
                       )}
 
-                      <div className={`relative w-full px-3 pt-2 pb-[22px] text-[15px] leading-relaxed shadow-sm break-words whitespace-pre-wrap ${
+                      <div className={`relative w-full px-3 pt-2 pb-[22px] text-[15px] leading-relaxed shadow-sm whitespace-pre-wrap break-all ${
                         isMe 
                           ? 'bg-[#005c4b] text-[#e9edef] rounded-[16px] rounded-tr-[4px]' 
                           : 'bg-[#202c33] text-[#e9edef] rounded-[16px] rounded-tl-[4px] border border-white/5'
@@ -363,36 +363,8 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
           </div>
         </div>
 
-        {/* Right Info Sidebar */}
-        <div className="hidden lg:flex w-[280px] flex-col bg-[var(--bg-main)]/80 backdrop-blur-md p-6 overflow-y-auto">
-          {/* Profile Card */}
-          <div className="flex flex-col items-center text-center border-b border-[var(--border-color)] pb-6 mb-6">
-            <div className="h-20 w-20 rounded-[24px] bg-[rgb(var(--accent-main))] flex items-center justify-center text-2xl font-bold text-[var(--text-strong)] shadow-lg shadow-cyan-500/20 mb-4 overflow-hidden relative">
-              {(otherUser?.avatar_url && otherUser.avatar_url.startsWith('http')) ? (
-                <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
-              ) : (
-                (otherUser?.name || 'U').charAt(0).toUpperCase()
-              )}
-              {otherUser && (
-                <div className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-[#070913] ${onlineUsers.has(otherUser.id) ? 'bg-emerald-500' : 'bg-gray-500'}`}></div>
-              )}
-            </div>
-            <h2 className="text-xl font-bold text-[var(--text-strong)] tracking-tight">{otherUser ? otherUser.name : '...'}</h2>
-            <p className="text-sm text-[var(--text-muted)]">Member</p>
-          </div>
 
-          {/* Shared Files */}
-          <div className="mb-6">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Shared Files</h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-2 hover:bg-[var(--bg-hover)] transition cursor-pointer">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[rgb(var(--accent-main))]/20 text-[rgb(var(--accent-main))]"><FileText className="h-4 w-4" /></div>
-                <span className="text-sm text-[var(--text-main)] truncate">No files shared yet.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
+      </div>
 
       {/* Forward Modal */}
       {forwardMsg && (
