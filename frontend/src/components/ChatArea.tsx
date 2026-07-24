@@ -214,7 +214,7 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
                 const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 return (
-                  <div key={msg.id} className={`flex gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                  <div key={msg.id} className={`flex w-full gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
                     {/* Only show avatars for group/public rooms, not 1-on-1 */}
                     {isPublicRoom && !isMe && (
                       <div className="flex h-8 w-8 shrink-0 mt-auto items-center justify-center rounded-full bg-[var(--bg-hover)] text-xs font-bold text-[var(--text-main)] shadow-sm border border-[var(--border-color)] overflow-hidden">
@@ -222,15 +222,15 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
                       </div>
                     )}
                     
-                    <div className={`relative group flex flex-col max-w-[85%] sm:max-w-[75%] md:max-w-md lg:max-w-lg ${isMe ? 'items-end' : 'items-start'}`}>
+                    <div className={`relative group flex flex-col min-w-0 max-w-[240px] sm:max-w-[320px] md:max-w-[400px] lg:max-w-[480px] ${isMe ? 'items-end' : 'items-start'}`}>
                       {/* Name for public rooms */}
                       {isPublicRoom && !isMe && (
-                        <span className="text-xs font-semibold text-[var(--text-muted)] ml-1 mb-1">
+                        <span className="text-xs font-semibold text-[var(--text-muted)] ml-1 mb-1 truncate w-full text-left">
                           User {msg.sender_id?.substring(0, 4)}
                         </span>
                       )}
 
-                      <div className={`relative px-3 py-2 text-[15px] leading-relaxed shadow-sm break-words whitespace-pre-wrap ${
+                      <div className={`relative max-w-full px-3 py-2 text-[15px] leading-relaxed shadow-sm break-words whitespace-pre-wrap ${
                         isMe 
                           ? 'bg-[#005c4b] text-[#e9edef] rounded-lg rounded-tr-none' 
                           : 'bg-[#202c33] text-[#e9edef] rounded-lg rounded-tl-none border border-white/5'
