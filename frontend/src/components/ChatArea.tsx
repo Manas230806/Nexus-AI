@@ -57,7 +57,7 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
       if (PUBLIC_ROOMS[roomId]) {
         setIsPublicRoom(PUBLIC_ROOMS[roomId]);
         // Ensure the public room exists in the conversations table so foreign key constraints don't fail
-        supabase.from('conversations').upsert({ id: roomId, type: 'public' }).then();
+        supabase.from('conversations').upsert({ id: roomId, type: 'group' }).then();
         return;
       }
 
