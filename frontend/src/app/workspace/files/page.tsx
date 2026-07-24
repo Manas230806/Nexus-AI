@@ -266,7 +266,11 @@ export default function FilesPage() {
                     <div className="mt-4">
                       <p className="truncate font-medium text-[var(--text-main)]" title={item.name}>{item.name}</p>
                       <div className="mt-1 flex items-center justify-between text-xs text-[var(--text-muted)]">
-                        <span>{item.size}</span>
+                        <span className="uppercase text-[10px] font-bold tracking-wider text-sky-500">
+                          {['document', 'image'].includes(item.type) 
+                            ? (item.name.includes('.') ? item.name.split('.').pop() : item.type)
+                            : item.size}
+                        </span>
                         <span>{formatDate(item.created_at)}</span>
                       </div>
                     </div>
