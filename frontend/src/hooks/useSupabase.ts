@@ -100,9 +100,9 @@ export function useMessages(conversationId: string | null) {
                 setMessages((prev) => [...prev, newMessage]);
               });
           } else if (payload.eventType === 'UPDATE') {
-            setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? { ...msg, content: payload.new.content } : msg));
+            setMessages((prev) => prev.map(msg => String(msg.id) === String(payload.new.id) ? { ...msg, content: payload.new.content ?? msg.content } : msg));
           } else if (payload.eventType === 'DELETE') {
-            setMessages((prev) => prev.filter(msg => msg.id !== payload.old.id));
+            setMessages((prev) => prev.filter(msg => String(msg.id) !== String(payload.old.id)));
           }
         }
       )
@@ -131,13 +131,16 @@ export function useMessages(conversationId: string | null) {
     if (!newContent.trim()) return;
 
     // Optimistically update local state for instant feedback
-    setMessages((prev) => prev.map(msg => msg.id === messageId ? { ...msg, content: newContent } : msg));
+    setMessages((prev) => prev.map(msg => String(msg.id) === String(messageId) ? { ...msg, content: newContent } : msg));
 
-    const { error } = await supabase.from('messages').update({ content: newContent }).eq('id', messageId);
+    const { data, error } = await supabase.from('messages').update({ content: newContent }).eq('id', messageId).select();
+    
     if (error) {
       console.error('Error editing message:', error);
       alert('Error editing message: ' + error.message);
-      // Reverting optimistic update can be added here if needed, but for now we just show the error
+    } else if (data && data.length === 0) {
+      console.error('Message not updated. RLS policy might be blocking this.');
+      alert('Failed to edit message. You may not have permission to edit this message.');
     }
   };
 
