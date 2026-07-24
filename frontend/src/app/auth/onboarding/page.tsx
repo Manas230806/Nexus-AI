@@ -13,6 +13,8 @@ export default function OnboardingPage() {
   const [userAuth, setUserAuth] = useState<any>(null);
   const router = useRouter();
 
+  const [checkingSession, setCheckingSession] = useState(true);
+
   useEffect(() => {
     const handleSession = async (session: any) => {
       setUserAuth(session.user);
@@ -26,15 +28,20 @@ export default function OnboardingPage() {
         
       if (userProfile?.username) {
         router.push('/workspace/chat');
+      } else {
+        setCheckingSession(false);
       }
     };
 
     const checkUser = async () => {
       // Check current session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
       
       if (session) {
         handleSession(session);
+      } else {
+        // If no session found, or error occurred (e.g. OAuth failed), redirect to login
+        router.push('/auth/login');
       }
     };
 
@@ -91,10 +98,19 @@ export default function OnboardingPage() {
     router.push('/workspace/chat');
   };
 
-  if (!userAuth) return null;
+  if (checkingSession || !userAuth) {
+    return (
+      <main className="flex min-h-[100dvh] items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-[#020617] p-6">
+        <div className="flex flex-col items-center justify-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--border-color-strong)] border-t-sky-500"></div>
+          <p className="text-sm text-[var(--text-muted)] animate-pulse">Setting up your workspace...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-[#020617] p-6">
+    <main className="flex min-h-[100dvh] items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-[#020617] p-6">
       <div className="w-full max-w-md rounded-[32px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)]/50 p-8 shadow-2xl backdrop-blur-xl sm:p-12">
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="mb-4 flex justify-center">
