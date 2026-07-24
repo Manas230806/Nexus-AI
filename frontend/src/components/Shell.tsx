@@ -128,10 +128,10 @@ export default function Shell({ children }: { children: ReactNode }) {
         <div className="px-4 mb-6">
           <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden">
-              {userProfile.avatar_url ? (
+              {(userProfile.avatar_url && userProfile.avatar_url.startsWith('http')) ? (
                 <img src={userProfile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
               ) : (
-                userProfile.name?.charAt(0).toUpperCase() || 'U'
+                (userProfile.name || 'U').charAt(0).toUpperCase()
               )}
             </div>
             <div className="flex flex-col truncate">

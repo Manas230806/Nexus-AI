@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText, Image as ImageIcon, Calendar, Edit2, Forward, X } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
-import { useMessages } from '../hooks/useSupabase';
+import { useMessages, usePresence } from '../hooks/useSupabase';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
 
@@ -31,6 +31,9 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
 
   // Mock Voice Recording state
   const [isRecording, setIsRecording] = useState(false);
+
+  // Online Presence
+  const onlineUsers = usePresence(currentUserId);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -171,12 +174,12 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
               <div className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden shrink-0">
                 {isPublicRoom ? (
                   <Hash className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                ) : otherUser?.avatar_url ? (
+                ) : (otherUser?.avatar_url && otherUser.avatar_url.startsWith('http')) ? (
                   <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                 ) : (
-                  otherUser?.name?.charAt(0).toUpperCase() || '?'
+                  (otherUser?.name || 'U').charAt(0).toUpperCase()
                 )}
-                <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#070913] bg-emerald-500"></div>
+                <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#070913] ${onlineUsers.has(otherUser?.id) ? 'bg-emerald-500' : 'bg-gray-500'}`}></div>
               </div>
               <div>
                 <h1 className="text-lg font-bold text-[var(--text-strong)] tracking-tight">
@@ -184,7 +187,11 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
                 </h1>
                 <p className="text-xs font-medium text-[var(--text-muted)]">
                   {isPublicRoom ? 'Public Room · Everyone' : 'Member · '}
-                  {!isPublicRoom && <span className="text-emerald-400">Online</span>}
+                  {!isPublicRoom && (
+                    onlineUsers.has(otherUser?.id) 
+                      ? <span className="text-emerald-400">Online</span>
+                      : <span className="text-gray-500">Offline</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -220,7 +227,7 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
                     {/* Only show avatars for group/public rooms, not 1-on-1 */}
                     {isPublicRoom && !isMe && (
                       <div className="flex h-8 w-8 shrink-0 mt-auto items-center justify-center rounded-full bg-[var(--bg-hover)] text-xs font-bold text-[var(--text-main)] shadow-sm border border-[var(--border-color)] overflow-hidden">
-                        {msg.users?.avatar_url ? (
+                        {(msg.users?.avatar_url && msg.users.avatar_url.startsWith('http')) ? (
                            <img src={msg.users.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                         ) : (
                            (msg.users?.name || msg.sender_id || 'U').charAt(0).toUpperCase()
@@ -332,11 +339,14 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
         <div className="hidden lg:flex w-[280px] flex-col bg-[var(--bg-main)]/80 backdrop-blur-md p-6 overflow-y-auto">
           {/* Profile Card */}
           <div className="flex flex-col items-center text-center border-b border-[var(--border-color)] pb-6 mb-6">
-            <div className="h-20 w-20 rounded-[24px] bg-[rgb(var(--accent-main))] flex items-center justify-center text-2xl font-bold text-[var(--text-strong)] shadow-lg shadow-cyan-500/20 mb-4 overflow-hidden">
-              {otherUser?.avatar_url ? (
+            <div className="h-20 w-20 rounded-[24px] bg-[rgb(var(--accent-main))] flex items-center justify-center text-2xl font-bold text-[var(--text-strong)] shadow-lg shadow-cyan-500/20 mb-4 overflow-hidden relative">
+              {(otherUser?.avatar_url && otherUser.avatar_url.startsWith('http')) ? (
                 <img src={otherUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
               ) : (
-                otherUser?.name?.charAt(0).toUpperCase() || '?'
+                (otherUser?.name || 'U').charAt(0).toUpperCase()
+              )}
+              {otherUser && (
+                <div className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-[#070913] ${onlineUsers.has(otherUser.id) ? 'bg-emerald-500' : 'bg-gray-500'}`}></div>
               )}
             </div>
             <h2 className="text-xl font-bold text-[var(--text-strong)] tracking-tight">{otherUser ? otherUser.name : '...'}</h2>
