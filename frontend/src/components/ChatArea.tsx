@@ -204,7 +204,9 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
               </div>
             </div>
             <div className="flex items-center gap-0.5 sm:gap-2">
-              <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><Video className="h-5 w-5" /></button>
+              <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors" title="Start Google Meet">
+                <Video className="h-5 w-5" />
+              </a>
               <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><Phone className="h-4 w-4" /></button>
               <button className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><Search className="h-5 w-5" /></button>
               <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><MoreVertical className="h-5 w-5" /></button>
@@ -258,7 +260,7 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
                           : 'bg-[#202c33] text-[#e9edef] rounded-[16px] rounded-tl-[4px] border border-white/5'
                       }`}>
                         {/* Action Dropdown Chevron */}
-                        <div className={`absolute top-1 right-1 p-1 opacity-100 md:opacity-20 group-hover:opacity-100 transition-opacity z-10`}>
+                        <div className="absolute top-1 right-1 p-1 opacity-100 z-10">
                           <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md rounded px-2 py-1">
                             {isMe && (
                               <button 
