@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText, Image as ImageIcon, Calendar, Edit2, Forward, X } from 'lucide-react';
+import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText, Image as ImageIcon, Calendar, Edit2, Forward, X, Camera } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { useMessages, usePresence } from '../hooks/useSupabase';
 import Link from 'next/link';
@@ -15,6 +15,9 @@ interface ChatAreaProps {
 export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
   const { messages, sendMessage, editMessage, forwardMessage } = useMessages(roomId);
   const [draft, setDraft] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const groupIconInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingIcon, setIsUploadingIcon] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -65,26 +68,67 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
         return;
       }
 
-      // 2. Get participants in this room to find the "other" person
-      const { data: participants } = await supabase
-        .from('participants')
-        .select('user_id')
-        .eq('conversation_id', roomId);
-      
-      if (participants) {
-        const otherParticipant = participants.find((p: any) => p.user_id !== myId);
-        if (otherParticipant) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', otherParticipant.user_id)
-            .single();
-          if (userData) setOtherUser(userData);
+      // 2. Get conversation details
+      const { data: convData } = await supabase.from('conversations').select('type, name, avatar_url').eq('id', roomId).single();
+      const isGroup = convData?.type === 'group';
+
+      if (isGroup) {
+        setOtherUser({
+          id: 'group',
+          name: convData?.name || 'Unnamed Group',
+          avatar_url: convData?.avatar_url,
+          isGroup: true
+        });
+      } else {
+        const { data: participants } = await supabase
+          .from('participants')
+          .select('user_id')
+          .eq('conversation_id', roomId);
+        
+        if (participants) {
+          const otherParticipant = participants.find((p: any) => p.user_id !== myId);
+          if (otherParticipant) {
+            const { data: userData } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', otherParticipant.user_id)
+              .single();
+            if (userData) setOtherUser(userData);
+          }
         }
       }
     };
     if (roomId) fetchChatData();
   }, [roomId]);
+
+  const handleGroupIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !roomId) return;
+
+    try {
+      setIsUploadingIcon(true);
+      const fileExt = file.name.split('.').pop();
+      const filePath = `group-${roomId}-${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      await supabase.from('conversations').update({ avatar_url: publicUrl }).eq('id', roomId);
+      setOtherUser((prev: any) => prev ? { ...prev, avatar_url: publicUrl } : prev);
+    } catch (error: any) {
+      console.error('Error uploading icon:', error);
+      alert('Error updating group icon: ' + error.message);
+    } finally {
+      setIsUploadingIcon(false);
+    }
+  };
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -179,7 +223,15 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
                 </button>
               )}
               
-              <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden shrink-0 cursor-pointer">
+              <div 
+                className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden shrink-0 cursor-pointer group"
+                onClick={() => {
+                  if (otherUser?.isGroup && groupIconInputRef.current) {
+                    groupIconInputRef.current.click();
+                  }
+                }}
+                title={otherUser?.isGroup ? "Change group icon" : ""}
+              >
                 {isPublicRoom ? (
                   <Hash className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 ) : (otherUser?.avatar_url && otherUser.avatar_url.startsWith('http')) ? (
@@ -187,15 +239,33 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
                 ) : (
                   (otherUser?.name || 'U').charAt(0).toUpperCase()
                 )}
-                <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#070913] ${onlineUsers.has(otherUser?.id) ? 'bg-emerald-500' : 'bg-gray-500'}`}></div>
+                <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#070913] ${(isPublicRoom || otherUser?.isGroup) ? 'hidden' : onlineUsers.has(otherUser?.id) ? 'bg-emerald-500' : 'bg-gray-500'}`}></div>
+                
+                {/* Overlay for Group Icon Upload */}
+                {otherUser?.isGroup && (
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    {isUploadingIcon ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    ) : (
+                      <Camera className="h-4 w-4 text-white" />
+                    )}
+                  </div>
+                )}
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  ref={groupIconInputRef}
+                  onChange={handleGroupIconUpload}
+                />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-[var(--text-strong)] tracking-tight">
                   {isPublicRoom ? isPublicRoom : (otherUser ? otherUser.name : 'Loading...')}
                 </h1>
                 <p className="text-xs font-medium text-[var(--text-muted)]">
-                  {isPublicRoom ? 'Public Room · Everyone' : 'Member · '}
-                  {!isPublicRoom && (
+                  {isPublicRoom ? 'Public Room · Everyone' : otherUser?.isGroup ? 'Private Group' : 'Member · '}
+                  {!isPublicRoom && !otherUser?.isGroup && (
                     onlineUsers.has(otherUser?.id) 
                       ? <span className="text-emerald-400">Online</span>
                       : <span className="text-gray-500">Offline</span>

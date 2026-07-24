@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, MessageCircle, X } from 'lucide-react';
+import { Search, Plus, MessageCircle, X, Users } from 'lucide-react';
 import Shell from '../../../components/Shell';
 import { supabase } from '../../../lib/supabaseClient';
 import ChatArea from '../../../components/ChatArea';
@@ -19,6 +19,13 @@ export default function DirectMessagesPage() {
   const [newChatError, setNewChatError] = useState('');
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
+  // New Group Modal States
+  const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupUsernames, setNewGroupUsernames] = useState('');
+  const [newGroupError, setNewGroupError] = useState('');
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+
   useEffect(() => {
     const fetchDMs = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -29,7 +36,7 @@ export default function DirectMessagesPage() {
       // Find all conversations this user is part of
       const { data: myParticipants } = await supabase
         .from('participants')
-        .select('conversation_id')
+        .select('conversation_id, conversations(id, type, name, avatar_url)')
         .eq('user_id', myId);
 
       if (!myParticipants || myParticipants.length === 0) {
@@ -46,9 +53,31 @@ export default function DirectMessagesPage() {
         .in('conversation_id', convIds)
         .neq('user_id', myId);
 
-      if (otherParticipants) {
-        setConversations(otherParticipants);
-      }
+      const processedConversations = myParticipants.map(p => {
+        const conv = p.conversations as any;
+        if (conv?.type === 'group') {
+          return {
+            conversation_id: conv.id,
+            type: 'group',
+            name: conv.name || 'Unnamed Group',
+            avatar_url: conv.avatar_url,
+            username: 'group'
+          };
+        } else {
+          const otherP = otherParticipants?.find((op: any) => op.conversation_id === conv?.id);
+          const otherUser = otherP?.users as any;
+          return {
+            conversation_id: conv?.id,
+            type: 'direct',
+            name: (Array.isArray(otherUser) ? otherUser[0] : otherUser)?.name || 'Unknown',
+            avatar_url: (Array.isArray(otherUser) ? otherUser[0] : otherUser)?.avatar_url,
+            username: (Array.isArray(otherUser) ? otherUser[0] : otherUser)?.username || 'unknown',
+            user_id: otherP?.user_id
+          };
+        }
+      });
+      
+      setConversations(processedConversations);
       setLoading(false);
     };
 
@@ -101,9 +130,55 @@ export default function DirectMessagesPage() {
     setIsCreatingChat(false);
   };
 
+  const handleCreateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGroupName.trim() || !newGroupUsernames.trim() || !currentUserId) return;
+    setIsCreatingGroup(true);
+    setNewGroupError('');
+
+    const usernames = newGroupUsernames.split(',').map(u => u.trim().toLowerCase().replace('@', '')).filter(u => u);
+    
+    if (usernames.length === 0) {
+      setNewGroupError('Please enter at least one username.');
+      setIsCreatingGroup(false);
+      return;
+    }
+
+    const { data: targetUsers, error: usersError } = await supabase
+      .from('users')
+      .select('id, username')
+      .in('username', usernames);
+
+    if (usersError || !targetUsers || targetUsers.length === 0) {
+      setNewGroupError('Could not find any of the specified users.');
+      setIsCreatingGroup(false);
+      return;
+    }
+
+    // Include the creator and the target users
+    const participantIds = Array.from(new Set([currentUserId, ...targetUsers.map(u => u.id)]));
+    
+    const { data: conv } = await supabase.from('conversations').insert([{ type: 'group', name: newGroupName.trim() }]).select().single();
+    if (conv) {
+      const participantInserts = participantIds.map(id => ({
+        user_id: id,
+        conversation_id: conv.id
+      }));
+      await supabase.from('participants').insert(participantInserts);
+      
+      setIsNewGroupModalOpen(false);
+      setNewGroupName('');
+      setNewGroupUsernames('');
+      setActiveConversationId(conv.id);
+    } else {
+      setNewGroupError('Failed to create group.');
+    }
+    setIsCreatingGroup(false);
+  };
+
   const filteredConversations = conversations.filter(conv => 
-    conv.users?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    conv.users?.username?.toLowerCase().includes(searchQuery.toLowerCase())
+    conv.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    conv.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -115,13 +190,22 @@ export default function DirectMessagesPage() {
           <div className="p-4 border-b border-[var(--border-color)] flex flex-col gap-3">
              <div className="flex items-center justify-between">
                <h2 className="text-xl font-bold text-[var(--text-strong)] tracking-tight">Messages</h2>
-               <button 
-                 onClick={() => setIsNewChatModalOpen(true)}
-                 className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm hover:bg-emerald-400 transition-colors"
-                 title="New Chat"
-               >
-                 <Plus className="h-4 w-4" />
-               </button>
+               <div className="flex items-center gap-2">
+                 <button 
+                   onClick={() => setIsNewChatModalOpen(true)}
+                   className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm hover:bg-emerald-400 transition-colors"
+                   title="New Chat"
+                 >
+                   <Plus className="h-4 w-4" />
+                 </button>
+                 <button 
+                   onClick={() => setIsNewGroupModalOpen(true)}
+                   className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-500 text-white shadow-sm hover:bg-sky-400 transition-colors"
+                   title="New Group"
+                 >
+                   <Users className="h-4 w-4" />
+                 </button>
+               </div>
              </div>
              <div className="relative flex items-center rounded-xl bg-[var(--bg-panel)] border border-[var(--border-color)] px-3 py-2 transition-colors focus-within:border-[rgb(var(--accent-main))]/50 shadow-inner">
               <Search className="h-4 w-4 text-[var(--text-muted)]" />
@@ -153,22 +237,29 @@ export default function DirectMessagesPage() {
                 >
                   <div className="flex items-center gap-3 w-full overflow-hidden">
                     <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-[rgb(var(--accent-main))] font-bold shadow-sm overflow-hidden border border-[var(--border-color)]">
-                      {(conv.users?.avatar_url && conv.users.avatar_url.startsWith('http')) ? (
-                        <img src={conv.users.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+                      {(conv.avatar_url && conv.avatar_url.startsWith('http')) ? (
+                        <img src={conv.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                       ) : (
-                        (conv.users?.name || 'U').charAt(0).toUpperCase()
+                        (conv.name || 'U').charAt(0).toUpperCase()
                       )}
-                      {activeConversationId === conv.conversation_id && !conv.users?.avatar_url && (
+                      {activeConversationId === conv.conversation_id && !conv.avatar_url && (
                         <div className="absolute inset-0 bg-white/20"></div>
                       )}
                     </div>
                     <div className="flex flex-col items-start overflow-hidden w-full text-left">
                       <span className={`font-semibold truncate w-full ${activeConversationId === conv.conversation_id ? 'text-white' : 'text-[var(--text-strong)]'}`}>
-                        {conv.users?.name || 'Unknown'}
+                        {conv.name || 'Unknown'}
                       </span>
-                      <span className={`text-[11px] truncate w-full ${activeConversationId === conv.conversation_id ? 'text-white/80' : 'text-[var(--text-muted)]'}`}>
-                        @{conv.users?.username}
-                      </span>
+                      {conv.type !== 'group' && (
+                        <span className={`text-[11px] truncate w-full ${activeConversationId === conv.conversation_id ? 'text-white/80' : 'text-[var(--text-muted)]'}`}>
+                          @{conv.username}
+                        </span>
+                      )}
+                      {conv.type === 'group' && (
+                        <span className={`text-[11px] truncate w-full ${activeConversationId === conv.conversation_id ? 'text-white/80' : 'text-emerald-500'}`}>
+                          Private Group
+                        </span>
+                      )}
                     </div>
                   </div>
                 </button>
@@ -263,6 +354,72 @@ export default function DirectMessagesPage() {
                     ) : (
                       'Start Chat'
                     )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* New Group Modal */}
+      {isNewGroupModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-[var(--text-main)]">
+          <div className="w-full max-w-md rounded-3xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4">
+              <h3 className="text-xl font-bold text-[var(--text-strong)] flex items-center gap-2">
+                <Users className="h-5 w-5 text-sky-500" />
+                New Group
+              </h3>
+              <button onClick={() => { setIsNewGroupModalOpen(false); setNewGroupError(''); }} className="rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-strong)] transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 bg-[var(--bg-main)]">
+              <form onSubmit={handleCreateGroup} className="flex flex-col gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Group Name</label>
+                  <input
+                    type="text"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    placeholder="e.g. Weekend Trip"
+                    className="w-full rounded-xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] px-4 py-3 text-[var(--text-main)] outline-none focus:border-sky-500 transition-colors shadow-inner"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Participants</label>
+                  <input
+                    type="text"
+                    value={newGroupUsernames}
+                    onChange={(e) => setNewGroupUsernames(e.target.value)}
+                    placeholder="usernames separated by comma..."
+                    className="w-full rounded-xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] px-4 py-3 text-[var(--text-main)] outline-none focus:border-sky-500 transition-colors shadow-inner"
+                  />
+                  <p className="text-xs text-[var(--text-muted)] mt-2">Example: abhi, siddu, john</p>
+                </div>
+                
+                {newGroupError && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+                    {newGroupError}
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-end gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setIsNewGroupModalOpen(false); setNewGroupError(''); }}
+                    className="rounded-xl px-5 py-2.5 text-sm font-semibold text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingGroup || !newGroupName.trim() || !newGroupUsernames.trim()}
+                    className="rounded-xl bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-sky-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCreatingGroup ? 'Creating...' : 'Create Group'}
                   </button>
                 </div>
               </form>
