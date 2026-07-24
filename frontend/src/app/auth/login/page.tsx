@@ -8,8 +8,8 @@ import { ArrowRight } from 'lucide-react';
 import Logo from '../../../components/Logo';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('example@nexus.ai');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -34,7 +34,6 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      alert("Google login button clicked! Attempting to contact Supabase...");
       setLoading(true);
       setError('');
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -45,13 +44,11 @@ export default function LoginPage() {
       });
 
       if (error) {
-        alert("Supabase returned an error: " + error.message);
         console.error('Supabase Google OAuth Error:', error);
         setError(error.message);
         setLoading(false);
       }
     } catch (err: any) {
-      alert("A crash occurred: " + err.message);
       console.error('Unexpected Google OAuth Catch Error:', err);
       setError(err.message || 'An unexpected error occurred during Google sign-in.');
       setLoading(false);
@@ -59,7 +56,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-[#020617] p-6">
+    <main className="flex min-h-[100dvh] items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-[#020617] p-6">
       <div className="w-full max-w-md rounded-[32px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)]/50 p-8 shadow-2xl backdrop-blur-xl sm:p-12">
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="mb-4 flex justify-center">

@@ -205,7 +205,7 @@ export default function Shell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[var(--bg-main)] font-sans text-[var(--text-main)]">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-[var(--bg-main)] font-sans text-[var(--text-main)]">
       
       {/* Background Grid Pattern */}
       <div 
