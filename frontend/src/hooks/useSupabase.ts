@@ -129,10 +129,15 @@ export function useMessages(conversationId: string | null) {
 
   const editMessage = async (messageId: string, newContent: string) => {
     if (!newContent.trim()) return;
+
+    // Optimistically update local state for instant feedback
+    setMessages((prev) => prev.map(msg => msg.id === messageId ? { ...msg, content: newContent } : msg));
+
     const { error } = await supabase.from('messages').update({ content: newContent }).eq('id', messageId);
     if (error) {
       console.error('Error editing message:', error);
       alert('Error editing message: ' + error.message);
+      // Reverting optimistic update can be added here if needed, but for now we just show the error
     }
   };
 
