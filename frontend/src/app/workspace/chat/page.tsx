@@ -5,9 +5,9 @@ import { ArrowRight, MessageSquareText, Sparkles } from 'lucide-react';
 import Shell from '../../../components/Shell';
 
 const rooms = [
-  { id: 'room-1', label: 'General', blurb: 'Daily team updates and quick check-ins.' },
-  { id: 'room-2', label: 'Product', blurb: 'Roadmaps, launches, and customer context.' },
-  { id: 'room-3', label: 'Engineering', blurb: 'Implementation progress and technical decisions.' },
+  { id: '11111111-1111-1111-1111-111111111111', label: 'General', blurb: 'Daily team updates and quick check-ins.' },
+  { id: '22222222-2222-2222-2222-222222222222', label: 'Community', blurb: 'Open discussion and community space.' },
+  { id: '33333333-3333-3333-3333-333333333333', label: 'Engineering', blurb: 'Implementation progress and technical decisions.' },
 ];
 
 export default function ChatLandingPage() {

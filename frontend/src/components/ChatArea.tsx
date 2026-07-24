@@ -49,13 +49,15 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
       setCurrentUserId(myId);
 
       const PUBLIC_ROOMS: Record<string, string> = {
-        'room-1': 'General',
-        'room-2': 'Product',
-        'room-3': 'Engineering'
+        '11111111-1111-1111-1111-111111111111': 'General',
+        '22222222-2222-2222-2222-222222222222': 'Community',
+        '33333333-3333-3333-3333-333333333333': 'Engineering'
       };
 
       if (PUBLIC_ROOMS[roomId]) {
         setIsPublicRoom(PUBLIC_ROOMS[roomId]);
+        // Ensure the public room exists in the conversations table so foreign key constraints don't fail
+        supabase.from('conversations').upsert({ id: roomId, type: 'public' }).then();
         return;
       }
 
@@ -218,7 +220,11 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
                     {/* Only show avatars for group/public rooms, not 1-on-1 */}
                     {isPublicRoom && !isMe && (
                       <div className="flex h-8 w-8 shrink-0 mt-auto items-center justify-center rounded-full bg-[var(--bg-hover)] text-xs font-bold text-[var(--text-main)] shadow-sm border border-[var(--border-color)] overflow-hidden">
-                        {msg.sender_id?.charAt(0).toUpperCase() || 'U'}
+                        {msg.users?.avatar_url ? (
+                           <img src={msg.users.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+                        ) : (
+                           (msg.users?.name || msg.sender_id || 'U').charAt(0).toUpperCase()
+                        )}
                       </div>
                     )}
                     
@@ -226,7 +232,7 @@ export default function ChatArea({ roomId }: ChatAreaProps) {
                       {/* Name for public rooms */}
                       {isPublicRoom && !isMe && (
                         <span className="text-xs font-semibold text-[var(--text-muted)] ml-1 mb-1 truncate w-full text-left">
-                          User {msg.sender_id?.substring(0, 4)}
+                          {msg.users?.name || `User ${msg.sender_id?.substring(0, 4)}`}
                         </span>
                       )}
 
