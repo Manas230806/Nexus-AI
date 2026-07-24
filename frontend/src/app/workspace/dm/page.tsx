@@ -22,7 +22,9 @@ export default function DirectMessagesPage() {
   // New Group Modal States
   const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
-  const [newGroupUsernames, setNewGroupUsernames] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [groupSearchQuery, setGroupSearchQuery] = useState('');
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const [newGroupError, setNewGroupError] = useState('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
 
@@ -84,6 +86,18 @@ export default function DirectMessagesPage() {
     fetchDMs();
   }, [activeConversationId]); // Re-fetch if active conversation changes (to show new chats in sidebar)
 
+  useEffect(() => {
+    if (isNewGroupModalOpen && allUsers.length === 0) {
+      const fetchUsers = async () => {
+        const { data } = await supabase.from('users').select('id, name, username, avatar_url');
+        if (data && currentUserId) {
+          setAllUsers(data.filter(u => u.id !== currentUserId));
+        }
+      };
+      fetchUsers();
+    }
+  }, [isNewGroupModalOpen, currentUserId, allUsers.length]);
+
   const handleStartNewChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newChatUsername.trim() || !currentUserId) return;
@@ -132,31 +146,12 @@ export default function DirectMessagesPage() {
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newGroupName.trim() || !newGroupUsernames.trim() || !currentUserId) return;
+    if (!newGroupName.trim() || selectedUserIds.length === 0 || !currentUserId) return;
     setIsCreatingGroup(true);
     setNewGroupError('');
 
-    const usernames = newGroupUsernames.split(',').map(u => u.trim().toLowerCase().replace('@', '')).filter(u => u);
-    
-    if (usernames.length === 0) {
-      setNewGroupError('Please enter at least one username.');
-      setIsCreatingGroup(false);
-      return;
-    }
-
-    const { data: targetUsers, error: usersError } = await supabase
-      .from('users')
-      .select('id, username')
-      .in('username', usernames);
-
-    if (usersError || !targetUsers || targetUsers.length === 0) {
-      setNewGroupError('Could not find any of the specified users.');
-      setIsCreatingGroup(false);
-      return;
-    }
-
     // Include the creator and the target users
-    const participantIds = Array.from(new Set([currentUserId, ...targetUsers.map(u => u.id)]));
+    const participantIds = Array.from(new Set([currentUserId, ...selectedUserIds]));
     
     const { data: conv } = await supabase.from('conversations').insert([{ type: 'group', name: newGroupName.trim() }]).select().single();
     if (conv) {
@@ -168,7 +163,8 @@ export default function DirectMessagesPage() {
       
       setIsNewGroupModalOpen(false);
       setNewGroupName('');
-      setNewGroupUsernames('');
+      setSelectedUserIds([]);
+      setGroupSearchQuery('');
       setActiveConversationId(conv.id);
     } else {
       setNewGroupError('Failed to create group.');
@@ -389,15 +385,50 @@ export default function DirectMessagesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Participants</label>
-                  <input
-                    type="text"
-                    value={newGroupUsernames}
-                    onChange={(e) => setNewGroupUsernames(e.target.value)}
-                    placeholder="usernames separated by comma..."
-                    className="w-full rounded-xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] px-4 py-3 text-[var(--text-main)] outline-none focus:border-sky-500 transition-colors shadow-inner"
-                  />
-                  <p className="text-xs text-[var(--text-muted)] mt-2">Example: abhi, siddu, john</p>
+                  <label className="block text-sm font-medium text-[var(--text-main)] mb-2">Select Participants</label>
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
+                    <input
+                      type="text"
+                      value={groupSearchQuery}
+                      onChange={(e) => setGroupSearchQuery(e.target.value)}
+                      placeholder="Search users..."
+                      className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] py-2 pl-9 pr-4 text-sm text-[var(--text-main)] outline-none focus:border-sky-500 transition-colors"
+                    />
+                  </div>
+                  <div className="h-48 overflow-y-auto rounded-xl border border-[var(--border-color-strong)] bg-[var(--bg-main)] p-2 space-y-1">
+                    {allUsers
+                      .filter(u => u.name?.toLowerCase().includes(groupSearchQuery.toLowerCase()) || u.username?.toLowerCase().includes(groupSearchQuery.toLowerCase()))
+                      .map(user => {
+                        const isSelected = selectedUserIds.includes(user.id);
+                        return (
+                          <div 
+                            key={user.id}
+                            onClick={() => {
+                              setSelectedUserIds(prev => 
+                                isSelected ? prev.filter(id => id !== user.id) : [...prev, user.id]
+                              );
+                            }}
+                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-sky-500/10 border border-sky-500/20' : 'hover:bg-[var(--bg-hover)] border border-transparent'}`}
+                          >
+                            <div className="h-8 w-8 rounded-full bg-[var(--bg-panel)] overflow-hidden shrink-0 flex items-center justify-center font-bold text-sm border border-[var(--border-color)] text-[rgb(var(--accent-main))]">
+                              {(user.avatar_url && user.avatar_url.startsWith('http')) ? (
+                                <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                (user.name || 'U').charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <div className="flex flex-col flex-1 overflow-hidden">
+                              <span className="text-sm font-semibold truncate text-[var(--text-strong)]">{user.name}</span>
+                              <span className="text-xs text-[var(--text-muted)] truncate">@{user.username}</span>
+                            </div>
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'bg-sky-500 border-sky-500' : 'border-[var(--border-color-strong)]'}`}>
+                              {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
                 
                 {newGroupError && (
@@ -409,17 +440,17 @@ export default function DirectMessagesPage() {
                 <div className="flex items-center justify-end gap-3 mt-2">
                   <button
                     type="button"
-                    onClick={() => { setIsNewGroupModalOpen(false); setNewGroupError(''); }}
+                    onClick={() => { setIsNewGroupModalOpen(false); setNewGroupError(''); setSelectedUserIds([]); setGroupSearchQuery(''); }}
                     className="rounded-xl px-5 py-2.5 text-sm font-semibold text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={isCreatingGroup || !newGroupName.trim() || !newGroupUsernames.trim()}
+                    disabled={isCreatingGroup || !newGroupName.trim() || selectedUserIds.length === 0}
                     className="rounded-xl bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-sky-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isCreatingGroup ? 'Creating...' : 'Create Group'}
+                    {isCreatingGroup ? 'Creating...' : `Create Group (${selectedUserIds.length})`}
                   </button>
                 </div>
               </form>
