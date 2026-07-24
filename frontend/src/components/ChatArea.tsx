@@ -260,7 +260,7 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
                           : 'bg-[#202c33] text-[#e9edef] rounded-[16px] rounded-tl-[4px] border border-white/5'
                       }`}>
                         {/* Action Dropdown Chevron */}
-                        <div className="absolute top-1 right-1 p-1 opacity-100 z-10">
+                        <div className={`absolute top-1 right-1 p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
                           <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md rounded px-2 py-1">
                             {isMe && (
                               <button 
