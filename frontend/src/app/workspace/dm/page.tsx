@@ -153,7 +153,14 @@ export default function DirectMessagesPage() {
     // Include the creator and the target users
     const participantIds = Array.from(new Set([currentUserId, ...selectedUserIds]));
     
-    const { data: conv } = await supabase.from('conversations').insert([{ type: 'group', name: newGroupName.trim() }]).select().single();
+    const { data: conv, error: convError } = await supabase.from('conversations').insert([{ type: 'group', name: newGroupName.trim() }]).select().single();
+    if (convError) {
+      console.error('Insert error:', convError);
+      setNewGroupError(`Failed to create group: ${convError.message}`);
+      setIsCreatingGroup(false);
+      return;
+    }
+    
     if (conv) {
       const participantInserts = participantIds.map(id => ({
         user_id: id,
@@ -167,7 +174,7 @@ export default function DirectMessagesPage() {
       setGroupSearchQuery('');
       setActiveConversationId(conv.id);
     } else {
-      setNewGroupError('Failed to create group.');
+      setNewGroupError('Failed to create group: Unknown error');
     }
     setIsCreatingGroup(false);
   };
@@ -232,7 +239,7 @@ export default function DirectMessagesPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3 w-full overflow-hidden">
-                    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-[rgb(var(--accent-main))] font-bold shadow-sm overflow-hidden border border-[var(--border-color)]">
+                    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-[var(--text-strong)] font-bold shadow-sm overflow-hidden border border-[var(--border-color)]">
                       {(conv.avatar_url && conv.avatar_url.startsWith('http')) ? (
                         <img src={conv.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                       ) : (
@@ -411,7 +418,7 @@ export default function DirectMessagesPage() {
                             }}
                             className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-sky-500/10 border border-sky-500/20' : 'hover:bg-[var(--bg-hover)] border border-transparent'}`}
                           >
-                            <div className="h-8 w-8 rounded-full bg-[var(--bg-panel)] overflow-hidden shrink-0 flex items-center justify-center font-bold text-sm border border-[var(--border-color)] text-[rgb(var(--accent-main))]">
+                            <div className="h-8 w-8 rounded-full bg-[var(--bg-panel)] overflow-hidden shrink-0 flex items-center justify-center font-bold text-sm border border-[var(--border-color)] text-[var(--text-strong)]">
                               {(user.avatar_url && user.avatar_url.startsWith('http')) ? (
                                 <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
                               ) : (
