@@ -108,10 +108,10 @@ export default function DirectMessagesPage() {
 
   return (
     <Shell>
-      <div className="flex h-full w-full overflow-hidden text-[var(--text-main)]">
+      <div className="flex h-[100dvh] md:h-full w-full overflow-hidden text-[var(--text-main)] relative">
         
         {/* DM Sidebar List */}
-        <div className="flex w-[300px] flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] backdrop-blur-sm shrink-0">
+        <div className={`flex flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] backdrop-blur-sm shrink-0 w-full md:w-[320px] lg:w-[360px] ${activeConversationId ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-4 border-b border-[var(--border-color)] flex flex-col gap-3">
              <div className="flex items-center justify-between">
                <h2 className="text-xl font-bold text-[var(--text-strong)] tracking-tight">Messages</h2>
@@ -175,13 +175,21 @@ export default function DirectMessagesPage() {
               ))
             )}
           </div>
+          
+          {/* Mobile FAB for new chat */}
+          <button 
+            onClick={() => setIsNewChatModalOpen(true)}
+            className="md:hidden absolute bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#00a884] text-white shadow-xl hover:bg-[#008f6f] transition-all z-30"
+          >
+            <MessageCircle className="h-6 w-6" />
+          </button>
         </div>
 
         {/* Main DM Chat Area */}
-        <div className="flex-1 flex flex-col bg-[var(--bg-main)]">
+        <div className={`flex-1 flex flex-col bg-[var(--bg-main)] ${!activeConversationId ? 'hidden md:flex' : 'flex'}`}>
           {activeConversationId ? (
-            <div className="h-full w-full p-2 sm:p-4 lg:p-6 overflow-hidden">
-              <ChatArea roomId={activeConversationId} />
+            <div className="h-full w-full overflow-hidden bg-transparent">
+              <ChatArea roomId={activeConversationId} onBack={() => setActiveConversationId(null)} />
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center">
