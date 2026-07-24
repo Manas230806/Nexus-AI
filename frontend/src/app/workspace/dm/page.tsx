@@ -153,10 +153,10 @@ export default function DirectMessagesPage() {
                 >
                   <div className="flex items-center gap-3 w-full overflow-hidden">
                     <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-[rgb(var(--accent-main))] font-bold shadow-sm overflow-hidden border border-[var(--border-color)]">
-                      {conv.users?.avatar_url ? (
+                      {(conv.users?.avatar_url && conv.users.avatar_url.startsWith('http')) ? (
                         <img src={conv.users.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                       ) : (
-                        conv.users?.name?.charAt(0).toUpperCase() || 'U'
+                        (conv.users?.name || 'U').charAt(0).toUpperCase()
                       )}
                       {activeConversationId === conv.conversation_id && !conv.users?.avatar_url && (
                         <div className="absolute inset-0 bg-white/20"></div>
