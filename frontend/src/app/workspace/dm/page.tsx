@@ -14,6 +14,30 @@ export default function DirectMessagesPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const handleOpenChat = (id: string) => {
+    setActiveConversationId(id);
+    if (window.location.hash !== '#chat') {
+      window.history.pushState({ chat: id }, '', window.location.pathname + window.location.search + '#chat');
+    }
+  };
+
+  const handleCloseChat = () => {
+    setActiveConversationId(null);
+    if (window.location.hash === '#chat') {
+      window.history.back();
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (activeConversationId) {
+        setActiveConversationId(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeConversationId]);
+
   // New Chat Modal States
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [newChatUsername, setNewChatUsername] = useState('');
@@ -156,7 +180,7 @@ export default function DirectMessagesPage() {
       
       setIsNewChatModalOpen(false);
       setNewChatUsername('');
-      setActiveConversationId(conv.id);
+      handleOpenChat(conv.id);
     } else {
       setNewChatError('Failed to start conversation.');
     }
@@ -191,7 +215,7 @@ export default function DirectMessagesPage() {
       setNewGroupName('');
       setSelectedUserIds([]);
       setGroupSearchQuery('');
-      setActiveConversationId(conv.id);
+      handleOpenChat(conv.id);
     } else {
       setNewGroupError('Failed to create group: Unknown error');
     }
@@ -251,7 +275,7 @@ export default function DirectMessagesPage() {
                 <button 
                   key={conv.conversation_id} 
                   onClick={() => {
-                    setActiveConversationId(conv.conversation_id);
+                    handleOpenChat(conv.conversation_id);
                     try { localStorage.setItem(`lastViewed_${conv.conversation_id}`, new Date().toISOString()); } catch(e) {}
                   }}
                   className={`w-full flex items-center justify-between rounded-xl px-3 py-3 text-sm transition-all ${
@@ -321,11 +345,11 @@ export default function DirectMessagesPage() {
               dragElastic={0.2}
               onDragEnd={(e, { offset, velocity }) => {
                 if (Math.abs(offset.x) > 100 || Math.abs(velocity.x) > 500) {
-                  setActiveConversationId(null);
+                  handleCloseChat();
                 }
               }}
             >
-              <ChatArea roomId={activeConversationId} onBack={() => setActiveConversationId(null)} />
+              <ChatArea roomId={activeConversationId} onBack={handleCloseChat} />
             </motion.div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center">
