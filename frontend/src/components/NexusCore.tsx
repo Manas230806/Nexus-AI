@@ -26,6 +26,7 @@ export default function NexusCore() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [coreState, setCoreState] = useState<'idle' | 'thinking' | 'voice' | 'automation' | 'meeting' | 'error'>('idle');
   const [thoughtIndex, setThoughtIndex] = useState(0);
+  const [idleColorIndex, setIdleColorIndex] = useState(0);
   const [radius, setRadius] = useState(160);
   const router = useRouter();
 
@@ -47,6 +48,13 @@ export default function NexusCore() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIdleColorIndex((prev) => (prev + 1) % 5);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
   const getCoreGlow = () => {
     switch(coreState) {
       case 'thinking': return 'shadow-[0_0_60px_rgba(168,85,247,0.6)] border-purple-500/50 bg-purple-500/10'; // Purple
@@ -55,7 +63,15 @@ export default function NexusCore() {
       case 'meeting': return 'shadow-[0_0_60px_rgba(74,222,128,0.6)] border-green-500/50 bg-green-500/10'; // Green
       case 'error': return 'shadow-[0_0_60px_rgba(239,68,68,0.6)] border-red-500/50 bg-red-500/10'; // Red
       // For idle, we check if it's light mode for appropriate shadow.
-      default: return 'shadow-[0_0_60px_rgba(67,56,202,0.3)] border-indigo-500/30 bg-indigo-500/5 dark:shadow-[0_0_40px_rgba(255,255,255,0.15)] dark:border-[var(--border-color-strong)] dark:bg-[var(--bg-hover)]'; 
+      default: 
+        const idleColors = [
+          'shadow-[0_0_60px_rgba(249,115,22,0.3)] border-orange-500/30 bg-orange-500/5 dark:shadow-[0_0_60px_rgba(249,115,22,0.25)] dark:border-orange-500/30 dark:bg-[var(--bg-hover)]', // orange
+          'shadow-[0_0_60px_rgba(168,85,247,0.3)] border-purple-500/30 bg-purple-500/5 dark:shadow-[0_0_60px_rgba(168,85,247,0.25)] dark:border-purple-500/30 dark:bg-[var(--bg-hover)]', // purple
+          'shadow-[0_0_60px_rgba(74,222,128,0.3)] border-green-500/30 bg-green-500/5 dark:shadow-[0_0_60px_rgba(74,222,128,0.25)] dark:border-green-500/30 dark:bg-[var(--bg-hover)]', // green
+          'shadow-[0_0_60px_rgba(34,211,238,0.3)] border-cyan-500/30 bg-cyan-500/5 dark:shadow-[0_0_60px_rgba(34,211,238,0.25)] dark:border-cyan-500/30 dark:bg-[var(--bg-hover)]', // cyan
+          'shadow-[0_0_60px_rgba(59,130,246,0.3)] border-blue-500/30 bg-blue-500/5 dark:shadow-[0_0_60px_rgba(59,130,246,0.25)] dark:border-blue-500/30 dark:bg-[var(--bg-hover)]' // blue
+        ];
+        return idleColors[idleColorIndex];
     }
   };
 
@@ -127,7 +143,7 @@ export default function NexusCore() {
         <div className="absolute inset-0 rounded-full bg-gradient-to-tl from-black/20 to-transparent pointer-events-none mix-blend-overlay" />
         
         {/* Inner glow effect */}
-        <div className="absolute inset-4 rounded-full blur-xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 dark:from-indigo-500/20 dark:to-purple-500/20 pointer-events-none" />
+        <div className="absolute inset-4 rounded-full blur-xl bg-gradient-to-r from-indigo-600/10 to-purple-600/10 dark:from-white/5 dark:to-transparent pointer-events-none transition-all duration-700" />
 
         <div className="flex flex-col items-center text-center relative z-10">
           <span className="text-xl md:text-2xl font-bold tracking-widest text-[var(--text-strong)] font-mono">
