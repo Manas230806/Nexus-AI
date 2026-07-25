@@ -26,7 +26,19 @@ export default function NexusCore() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [coreState, setCoreState] = useState<'idle' | 'thinking' | 'voice' | 'automation' | 'meeting' | 'error'>('idle');
   const [thoughtIndex, setThoughtIndex] = useState(0);
+  const [radius, setRadius] = useState(160);
   const router = useRouter();
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) setRadius(120);
+      else if (window.innerWidth < 1024) setRadius(140);
+      else setRadius(160);
+    };
+    handleResize(); // Set initial radius
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -59,12 +71,11 @@ export default function NexusCore() {
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[500px] w-full">
+    <div className="relative flex flex-col items-center justify-center min-h-[400px] md:min-h-[500px] w-full">
       {/* Orbiting Modules */}
       <AnimatePresence>
         {isExpanded && modules.map((mod, index) => {
           const angle = (index * (360 / modules.length) - 90) * (Math.PI / 180);
-          const radius = 160; 
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
 
@@ -81,10 +92,10 @@ export default function NexusCore() {
                 handleModuleClick(mod.id);
               }}
             >
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-md border border-[var(--border-color-strong)] transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] bg-[var(--bg-panel)]`}>
-                <mod.icon className={`w-6 h-6 ${mod.color}`} />
+              <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center backdrop-blur-md border border-[var(--border-color-strong)] transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] bg-[var(--bg-panel)]`}>
+                <mod.icon className={`w-5 h-5 md:w-6 md:h-6 ${mod.color}`} />
               </div>
-              <span className="absolute top-16 text-xs font-semibold text-[var(--text-strong)] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <span className="absolute top-14 md:top-16 text-[10px] md:text-xs font-semibold text-[var(--text-strong)] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                 {mod.label}
               </span>
             </motion.div>
@@ -106,7 +117,7 @@ export default function NexusCore() {
           ease: "easeInOut"
         }}
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`relative z-30 flex items-center justify-center w-48 h-48 rounded-full cursor-pointer backdrop-blur-3xl border transition-all duration-700 ${getCoreGlow()}`}
+        className={`relative z-30 flex items-center justify-center w-36 h-36 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-full cursor-pointer backdrop-blur-3xl border transition-all duration-700 ${getCoreGlow()}`}
       >
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent pointer-events-none mix-blend-overlay" />
         <div className="absolute inset-0 rounded-full bg-gradient-to-tl from-black/20 to-transparent pointer-events-none mix-blend-overlay" />
@@ -115,7 +126,7 @@ export default function NexusCore() {
         <div className="absolute inset-4 rounded-full blur-xl bg-gradient-to-r from-indigo-500/20 to-purple-500/20 pointer-events-none" />
 
         <div className="flex flex-col items-center text-center relative z-10">
-          <span className="text-2xl font-bold tracking-widest text-[var(--text-strong)] font-mono">
+          <span className="text-xl md:text-2xl font-bold tracking-widest text-[var(--text-strong)] font-mono">
             NEXUS
           </span>
           <span className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)] mt-1">
