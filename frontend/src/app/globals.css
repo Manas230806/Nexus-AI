@@ -3,22 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --bg-main: #09090B;
-  --bg-panel: rgba(17,24,39,0.7);
-  --bg-sidebar: #09090B;
-  --bg-active: rgba(255,255,255,0.05);
+  --bg-main: #070913;
+  --bg-panel: #131627;
+  --bg-sidebar: #0A0D1A;
+  --bg-active: #151930;
   --bg-hover: rgba(255,255,255,0.05);
   --bg-hover-strong: rgba(255,255,255,0.1);
-  --text-main: #FFFFFF;
-  --text-muted: #9CA3AF;
-  --text-strong: #FFFFFF;
-  --border-color: rgba(255,255,255,0.08);
-  --border-color-strong: rgba(255,255,255,0.15);
-  --border-active: #6D5DF6;
-  --accent-main: 109, 93, 246; /* #6D5DF6 */
-  --accent-glow: #8B5CF6;
-  --accent-secondary: #0EA5E9;
-  --success: #22C55E;
+  --text-main: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-strong: #ffffff;
+  --border-color: rgba(255,255,255,0.05);
+  --border-color-strong: rgba(255,255,255,0.1);
+  --border-active: #2D3359;
+  --accent-main: 99, 102, 241; /* indigo */
   color-scheme: dark;
 }
 
