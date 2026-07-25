@@ -67,6 +67,7 @@ export default function NexusCore() {
     else {
       setCoreState('idle');
       if (id === 'chat') router.push('/workspace/ai');
+      if (id === 'memory') router.push('/workspace/memory');
     }
   };
 

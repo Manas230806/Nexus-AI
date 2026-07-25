@@ -515,3 +515,124 @@ export function useTodos(userId: string | null) {
 
   return { todos, loading, addTodo, toggleTodo, deleteTodo, refreshTodos: fetchTodos };
 }
+
+export interface MemoryItem {
+  id: string;
+  type: 'bank' | 'document' | 'note';
+  title: string;
+  data: any; 
+  createdAt: string;
+}
+
+export function useMemoryVault(userId: string | null) {
+  const [memories, setMemories] = useState<MemoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [vaultNoteId, setVaultNoteId] = useState<string | null>(null);
+
+  const fetchVault = async () => {
+    if (!userId) {
+      setMemories([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('title', '__SYSTEM_MEMORY_VAULT__')
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching vault note:', error);
+    }
+
+    if (data) {
+      setVaultNoteId(data.id);
+      try {
+        const parsed = JSON.parse(data.content);
+        setMemories(Array.isArray(parsed) ? parsed : []);
+      } catch (e) {
+        setMemories([]);
+      }
+    } else {
+      const { data: newData, error: createError } = await supabase.from('notes').insert({
+        user_id: userId,
+        title: '__SYSTEM_MEMORY_VAULT__',
+        content: '[]',
+        preview: 'System note for secure memory vault.',
+        tags: ['system', 'hidden']
+      }).select().single();
+      
+      if (!createError && newData) {
+        setVaultNoteId(newData.id);
+      }
+      setMemories([]);
+    }
+    
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchVault();
+  }, [userId]);
+
+  const saveMemories = async (newMemories: MemoryItem[], noteId: string) => {
+    const { error } = await supabase.from('notes').update({
+      content: JSON.stringify(newMemories)
+    }).eq('id', noteId);
+    
+    if (error) {
+      console.error('Error saving vault:', error);
+    }
+  };
+
+  const addMemory = async (type: 'bank' | 'document' | 'note', title: string, dataObj: any, file?: File | null) => {
+    if (!vaultNoteId || !userId) return;
+    
+    if (file && type === 'document') {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `vault_${userId}/${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('workspace_files')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('Error uploading secure file:', uploadError);
+        alert('Error uploading file: ' + uploadError.message);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('workspace_files')
+        .getPublicUrl(fileName);
+        
+      dataObj.fileUrl = publicUrlData.publicUrl;
+      dataObj.fileExt = fileExt;
+      dataObj.fileName = file.name;
+    }
+
+    const newMemory: MemoryItem = {
+      id: Math.random().toString(36).substring(2) + Date.now().toString(36),
+      type,
+      title,
+      data: dataObj,
+      createdAt: new Date().toISOString()
+    };
+    
+    const updated = [newMemory, ...memories];
+    setMemories(updated);
+    await saveMemories(updated, vaultNoteId);
+  };
+
+  const deleteMemory = async (id: string) => {
+    if (!vaultNoteId) return;
+    const updated = memories.filter(t => t.id !== id);
+    setMemories(updated);
+    await saveMemories(updated, vaultNoteId);
+  };
+
+  return { memories, loading, addMemory, deleteMemory, refreshVault: fetchVault };
+}
