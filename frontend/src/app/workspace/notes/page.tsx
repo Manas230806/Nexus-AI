@@ -6,6 +6,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Shell from '../../../components/Shell';
 import { useUser, useNotes, useTodos } from '../../../hooks/useSupabase';
 
+const playAlarmSound = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    // Play 4 loud dual-tone alarm beeps
+    for (let i = 0; i < 4; i++) {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      // Use square wave for a harsh/loud alarm sound
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, ctx.currentTime + i * 0.5); // High pitch
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + i * 0.5 + 0.15); // Higher pitch for siren effect
+      
+      // Volume envelope to avoid popping
+      gainNode.gain.setValueAtTime(0, ctx.currentTime + i * 0.5);
+      gainNode.gain.linearRampToValueAtTime(0.8, ctx.currentTime + i * 0.5 + 0.05); // 80% volume (loud!)
+      gainNode.gain.setValueAtTime(0.8, ctx.currentTime + i * 0.5 + 0.3);
+      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.5 + 0.35);
+      
+      osc.start(ctx.currentTime + i * 0.5);
+      osc.stop(ctx.currentTime + i * 0.5 + 0.4);
+    }
+  } catch (e) {
+    console.error("Audio playback failed", e);
+  }
+};
+
 export default function NotesPage() {
   const { user } = useUser();
   const { notes, loading: notesLoading, addNote, updateNote, deleteNote } = useNotes(user?.id || null);
@@ -46,6 +79,8 @@ export default function NotesPage() {
         if (!todo.completed && todo.reminderTime === currentTimeString) {
           const notifiedKey = `notified_${todo.id}_${now.toDateString()}`;
           if (!localStorage.getItem(notifiedKey)) {
+            playAlarmSound(); // Play the loud sound!
+            
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('Task Reminder', {
                 body: todo.task,
