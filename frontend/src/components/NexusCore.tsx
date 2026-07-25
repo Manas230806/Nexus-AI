@@ -61,12 +61,15 @@ export default function NexusCore() {
 
   const handleModuleClick = (id: string) => {
     if (id === 'voice') setCoreState('voice');
-    else if (id === 'agents') setCoreState('thinking');
     else if (id === 'automations') setCoreState('automation');
     else if (id === 'meetings') setCoreState('meeting');
+    else if (id === 'agents') {
+      setCoreState('thinking');
+      setTimeout(() => router.push('/workspace/ai'), 400);
+    }
     else {
       setCoreState('idle');
-      if (id === 'chat') router.push('/workspace/ai');
+      if (id === 'chat') router.push('/workspace/dm');
       if (id === 'memory') router.push('/workspace/memory');
     }
   };
