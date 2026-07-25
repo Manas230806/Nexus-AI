@@ -409,3 +409,109 @@ export function useWorkspaceFiles(userId: string | null) {
 
   return { folders, items, loading, createFolder, deleteFolder, createItem, deleteItem, refreshWorkspace: fetchWorkspace };
 }
+
+export interface Todo {
+  id: string;
+  task: string;
+  reminderTime: string | null;
+  completed: boolean;
+  createdAt: string;
+}
+
+export function useTodos(userId: string | null) {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [todoNoteId, setTodoNoteId] = useState<string | null>(null);
+
+  const fetchTodos = async () => {
+    if (!userId) {
+      setTodos([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    
+    // Look for the special note that stores todos
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('title', '__SYSTEM_DAILY_TODO__')
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching todos note:', error);
+    }
+
+    if (data) {
+      setTodoNoteId(data.id);
+      try {
+        const parsedTodos = JSON.parse(data.content);
+        setTodos(Array.isArray(parsedTodos) ? parsedTodos : []);
+      } catch (e) {
+        setTodos([]);
+      }
+    } else {
+      // Create the special note if it doesn't exist
+      const { data: newData, error: createError } = await supabase.from('notes').insert({
+        user_id: userId,
+        title: '__SYSTEM_DAILY_TODO__',
+        content: '[]',
+        preview: 'System note for storing daily to-dos. Do not delete.',
+        tags: ['system', 'hidden']
+      }).select().single();
+      
+      if (!createError && newData) {
+        setTodoNoteId(newData.id);
+      }
+      setTodos([]);
+    }
+    
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTodos();
+  }, [userId]);
+
+  const saveTodos = async (newTodos: Todo[], noteId: string) => {
+    const { error } = await supabase.from('notes').update({
+      content: JSON.stringify(newTodos)
+    }).eq('id', noteId);
+    
+    if (error) {
+      console.error('Error saving todos:', error);
+    }
+  };
+
+  const addTodo = async (task: string, reminderTime: string | null) => {
+    if (!todoNoteId) return;
+    const newTodo: Todo = {
+      id: Math.random().toString(36).substring(2) + Date.now().toString(36),
+      task,
+      reminderTime,
+      completed: false,
+      createdAt: new Date().toISOString()
+    };
+    
+    const updatedTodos = [newTodo, ...todos];
+    setTodos(updatedTodos);
+    await saveTodos(updatedTodos, todoNoteId);
+  };
+
+  const toggleTodo = async (id: string) => {
+    if (!todoNoteId) return;
+    const updatedTodos = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+    setTodos(updatedTodos);
+    await saveTodos(updatedTodos, todoNoteId);
+  };
+
+  const deleteTodo = async (id: string) => {
+    if (!todoNoteId) return;
+    const updatedTodos = todos.filter(t => t.id !== id);
+    setTodos(updatedTodos);
+    await saveTodos(updatedTodos, todoNoteId);
+  };
+
+  return { todos, loading, addTodo, toggleTodo, deleteTodo, refreshTodos: fetchTodos };
+}
