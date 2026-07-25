@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText, Image as ImageIcon, Calendar, Edit2, Forward, X, Camera } from 'lucide-react';
+import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText, Image as ImageIcon, Calendar, Edit2, Forward, X, Camera, Trash2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { useMessages, usePresence } from '../hooks/useSupabase';
 import Link from 'next/link';
@@ -13,7 +13,7 @@ interface ChatAreaProps {
 }
 
 export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
-  const { messages, sendMessage, editMessage, forwardMessage } = useMessages(roomId);
+  const { messages, sendMessage, editMessage, forwardMessage, deleteMessageForEveryone } = useMessages(roomId);
   const [draft, setDraft] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const groupIconInputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +38,28 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
 
   // Online Presence
   const onlineUsers = usePresence(currentUserId);
+
+  // Deleted For Me
+  const [deletedForMe, setDeletedForMe] = useState<string[]>([]);
+  
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('deletedForMe');
+      if (stored) setDeletedForMe(JSON.parse(stored));
+    } catch (e) {}
+  }, []);
+
+  const handleDeleteForMe = (messageId: string) => {
+    const updated = [...deletedForMe, messageId];
+    setDeletedForMe(updated);
+    localStorage.setItem('deletedForMe', JSON.stringify(updated));
+  };
+
+  const handleDeleteForEveryone = async (messageId: string) => {
+    if (window.confirm("Delete this message for everyone?")) {
+      await deleteMessageForEveryone(messageId);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -298,7 +320,7 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
                 </div>
               )}
 
-              {messages.map((msg: any) => {
+              {messages.filter((msg: any) => !deletedForMe.includes(msg.id)).map((msg: any) => {
                 const isMe = msg.sender_id === currentUserId;
                 const date = new Date(msg.created_at);
                 const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -348,11 +370,27 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
                             >
                               <Forward className="h-3.5 w-3.5" />
                             </button>
+                            <button 
+                              onClick={() => handleDeleteForMe(msg.id)}
+                              className="text-white/80 hover:text-white"
+                              title="Delete for me"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                            {isMe && (
+                              <button 
+                                onClick={() => handleDeleteForEveryone(msg.id)}
+                                className="text-red-400/80 hover:text-red-400"
+                                title="Delete for everyone"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
                         {/* Message Content */}
-                        <div className="pr-4">{msg.content}</div>
+                        <div className={`pr-4 ${msg.content === '[This message was deleted]' ? 'italic text-white/50' : ''}`}>{msg.content}</div>
                         
                         {/* Time inside bubble */}
                         <div className="absolute bottom-1 right-2 text-[10px] text-white/60 font-medium flex items-center gap-1">

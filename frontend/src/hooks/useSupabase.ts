@@ -203,7 +203,19 @@ export function useMessages(conversationId: string | null) {
     });
   };
 
-  return { messages, loading, sendMessage, editMessage, forwardMessage };
+  const deleteMessageForEveryone = async (messageId: string) => {
+    // Optimistically update local state for instant feedback
+    setMessages((prev) => prev.map(msg => String(msg.id) === String(messageId) ? { ...msg, content: '[This message was deleted]' } : msg));
+
+    const { error } = await supabase.from('messages').update({ content: '[This message was deleted]' }).eq('id', messageId);
+    
+    if (error) {
+      console.error('Error deleting message:', error);
+      alert('Error deleting message: ' + error.message);
+    }
+  };
+
+  return { messages, loading, sendMessage, editMessage, forwardMessage, deleteMessageForEveryone };
 }
 
 export function useNotes(userId: string | null) {

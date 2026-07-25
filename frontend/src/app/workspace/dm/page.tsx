@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Plus, MessageCircle, X, Users } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Shell from '../../../components/Shell';
 import { supabase } from '../../../lib/supabaseClient';
 import ChatArea from '../../../components/ChatArea';
@@ -79,7 +80,25 @@ export default function DirectMessagesPage() {
         }
       });
       
-      setConversations(processedConversations);
+      const { data: latestMessages } = await supabase
+        .from('messages')
+        .select('conversation_id, created_at')
+        .in('conversation_id', convIds)
+        .order('created_at', { ascending: false });
+
+      const latestMsgMap: Record<string, string> = {};
+      latestMessages?.forEach(m => {
+        if (!latestMsgMap[m.conversation_id]) {
+          latestMsgMap[m.conversation_id] = m.created_at;
+        }
+      });
+
+      const finalConversations = processedConversations.map(c => ({
+        ...c,
+        latest_message_at: latestMsgMap[c.conversation_id] || null
+      }));
+      
+      setConversations(finalConversations);
       setLoading(false);
     };
 
@@ -231,7 +250,10 @@ export default function DirectMessagesPage() {
               filteredConversations.map((conv) => (
                 <button 
                   key={conv.conversation_id} 
-                  onClick={() => setActiveConversationId(conv.conversation_id)}
+                  onClick={() => {
+                    setActiveConversationId(conv.conversation_id);
+                    try { localStorage.setItem(`lastViewed_${conv.conversation_id}`, new Date().toISOString()); } catch(e) {}
+                  }}
                   className={`w-full flex items-center justify-between rounded-xl px-3 py-3 text-sm transition-all ${
                     activeConversationId === conv.conversation_id 
                       ? 'bg-[rgb(var(--accent-main))] text-white shadow-md' 
@@ -249,10 +271,20 @@ export default function DirectMessagesPage() {
                         <div className="absolute inset-0 bg-white/20"></div>
                       )}
                     </div>
-                    <div className="flex flex-col items-start overflow-hidden w-full text-left">
-                      <span className={`font-semibold truncate w-full ${activeConversationId === conv.conversation_id ? 'text-white' : 'text-[var(--text-strong)]'}`}>
+                    <div className="flex flex-col items-start overflow-hidden w-full text-left relative">
+                      <span className={`font-semibold truncate w-full pr-4 ${activeConversationId === conv.conversation_id ? 'text-white' : 'text-[var(--text-strong)]'}`}>
                         {conv.name || 'Unknown'}
                       </span>
+                      {(() => {
+                        let isUnread = false;
+                        try {
+                          const lastViewed = localStorage.getItem(`lastViewed_${conv.conversation_id}`);
+                          isUnread = !!(conv.latest_message_at && (!lastViewed || new Date(conv.latest_message_at) > new Date(lastViewed)));
+                        } catch(e) {}
+                        return isUnread && activeConversationId !== conv.conversation_id ? (
+                          <div className="absolute top-1.5 right-0 w-2.5 h-2.5 bg-[#25D366] rounded-full shadow-sm"></div>
+                        ) : null;
+                      })()}
                       {conv.type !== 'group' && (
                         <span className={`text-[11px] truncate w-full ${activeConversationId === conv.conversation_id ? 'text-white/80' : 'text-[var(--text-muted)]'}`}>
                           @{conv.username}
@@ -282,9 +314,19 @@ export default function DirectMessagesPage() {
         {/* Main DM Chat Area */}
         <div className={`flex-1 flex flex-col bg-[var(--bg-main)] ${!activeConversationId ? 'hidden md:flex' : 'flex'}`}>
           {activeConversationId ? (
-            <div className="h-full w-full overflow-hidden bg-transparent">
+            <motion.div 
+              className="h-full w-full overflow-hidden bg-transparent"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(e, { offset, velocity }) => {
+                if (offset.x > 100 || velocity.x > 500) {
+                  setActiveConversationId(null);
+                }
+              }}
+            >
               <ChatArea roomId={activeConversationId} onBack={() => setActiveConversationId(null)} />
-            </div>
+            </motion.div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center">
                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 mb-6 border border-emerald-500/20 shadow-lg">
