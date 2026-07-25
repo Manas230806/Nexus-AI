@@ -320,7 +320,7 @@ export default function DirectMessagesPage() {
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.2}
               onDragEnd={(e, { offset, velocity }) => {
-                if (offset.x > 100 || velocity.x > 500) {
+                if (Math.abs(offset.x) > 100 || Math.abs(velocity.x) > 500) {
                   setActiveConversationId(null);
                 }
               }}
