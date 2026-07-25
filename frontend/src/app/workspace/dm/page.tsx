@@ -349,7 +349,17 @@ export default function DirectMessagesPage() {
                 }
               }}
             >
-              <ChatArea roomId={activeConversationId} onBack={handleCloseChat} />
+              <ChatArea 
+                roomId={activeConversationId} 
+                onBack={handleCloseChat} 
+                onAvatarChange={(url) => {
+                  setConversations(prev => prev.map(conv => 
+                    conv.conversation_id === activeConversationId
+                      ? { ...conv, avatar_url: url }
+                      : conv
+                  ));
+                }}
+              />
             </motion.div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center">

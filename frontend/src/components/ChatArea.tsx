@@ -6,18 +6,19 @@ import EmojiPicker from 'emoji-picker-react';
 import { useMessages, usePresence } from '../hooks/useSupabase';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
+import { DEFAULT_AVATARS } from '../lib/constants';
 
 interface ChatAreaProps {
   roomId: string;
   onBack?: () => void;
+  onAvatarChange?: (url: string) => void;
 }
 
-export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
+export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaProps) {
   const { messages, sendMessage, editMessage, forwardMessage, deleteMessageForEveryone } = useMessages(roomId);
   const [draft, setDraft] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const groupIconInputRef = useRef<HTMLInputElement>(null);
-  const [isUploadingIcon, setIsUploadingIcon] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -123,32 +124,16 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
     if (roomId) fetchChatData();
   }, [roomId]);
 
-  const handleGroupIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !roomId) return;
-
+  const handleSelectGroupAvatar = async (url: string) => {
+    if (!roomId) return;
     try {
-      setIsUploadingIcon(true);
-      const fileExt = file.name.split('.').pop();
-      const filePath = `group-${roomId}-${Math.random()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      await supabase.from('conversations').update({ avatar_url: publicUrl }).eq('id', roomId);
-      setOtherUser((prev: any) => prev ? { ...prev, avatar_url: publicUrl } : prev);
+      await supabase.from('conversations').update({ avatar_url: url }).eq('id', roomId);
+      setOtherUser((prev: any) => prev ? { ...prev, avatar_url: url } : prev);
+      if (onAvatarChange) onAvatarChange(url);
+      setIsAvatarModalOpen(false);
     } catch (error: any) {
-      console.error('Error uploading icon:', error);
+      console.error('Error updating icon:', error);
       alert('Error updating group icon: ' + error.message);
-    } finally {
-      setIsUploadingIcon(false);
     }
   };
 
@@ -248,8 +233,8 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
               <div 
                 className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden shrink-0 cursor-pointer group"
                 onClick={() => {
-                  if (otherUser?.isGroup && groupIconInputRef.current) {
-                    groupIconInputRef.current.click();
+                  if (otherUser?.isGroup) {
+                    setIsAvatarModalOpen(true);
                   }
                 }}
                 title={otherUser?.isGroup ? "Change group icon" : ""}
@@ -266,20 +251,9 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
                 {/* Overlay for Group Icon Upload */}
                 {otherUser?.isGroup && (
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    {isUploadingIcon ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    ) : (
-                      <Camera className="h-4 w-4 text-white" />
-                    )}
+                    <Camera className="h-4 w-4 text-white" />
                   </div>
                 )}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  ref={groupIconInputRef}
-                  onChange={handleGroupIconUpload}
-                />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-[var(--text-strong)] tracking-tight">
@@ -525,6 +499,33 @@ export default function ChatArea({ roomId, onBack }: ChatAreaProps) {
           </div>
         </div>
       )}
+      {/* Avatar Selection Modal */}
+      {isAvatarModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-[var(--text-main)] animate-fade-in">
+          <div className="w-full max-w-xl rounded-3xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] shadow-2xl overflow-hidden flex flex-col scale-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-[var(--text-strong)]">Choose Group Avatar</h2>
+              <button onClick={() => setIsAvatarModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-[var(--text-muted)] mb-4">Select a style:</p>
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-3 mb-2 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+              {DEFAULT_AVATARS.map((url, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => handleSelectGroupAvatar(url)}
+                  className="rounded-full overflow-hidden border-2 border-[var(--border-color)] hover:border-[rgb(var(--accent-main))] hover:scale-110 transition-all bg-[var(--bg-main)] aspect-square"
+                >
+                  <img src={url} alt={`Avatar ${idx}`} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <style dangerouslySetInnerHTML={{
         __html: `

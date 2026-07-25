@@ -5,14 +5,7 @@ import { Settings, User, Bell, Shield, Moon, Sun, Monitor, Paintbrush, Save, X, 
 import Shell from '../../../components/Shell';
 import { supabase } from '../../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-
-const DEFAULT_AVATARS = [
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Jude',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Mia',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Leo'
-];
+import { DEFAULT_AVATARS } from '../../../lib/constants';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -29,8 +22,6 @@ export default function SettingsPage() {
   
   // Modal State
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (theme === 'light') {
@@ -84,37 +75,6 @@ export default function SettingsPage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     window.location.href = '/auth/login';
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true);
-      if (!e.target.files || e.target.files.length === 0) return;
-      
-      const file = e.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}-${Math.random()}.${fileExt}`;
-
-      // Upload to supabase storage (bucket: avatars)
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      setAvatarUrl(publicUrl);
-      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', userId);
-      setIsAvatarModalOpen(false);
-    } catch (error: any) {
-      alert('Error uploading avatar: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
   };
 
   return (
@@ -294,8 +254,8 @@ export default function SettingsPage() {
 
       {/* Avatar Selection Modal */}
       {isAvatarModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[24px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-[var(--text-main)] animate-fade-in">
+          <div className="w-full max-w-xl rounded-3xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] shadow-2xl overflow-hidden flex flex-col scale-100 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-[var(--text-strong)]">Choose an Avatar</h2>
               <button onClick={() => setIsAvatarModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]">
@@ -303,41 +263,17 @@ export default function SettingsPage() {
               </button>
             </div>
             
-            <p className="text-sm text-[var(--text-muted)] mb-4">Select a default style:</p>
-            <div className="grid grid-cols-5 gap-3 mb-6">
+            <p className="text-sm text-[var(--text-muted)] mb-4">Select a style:</p>
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-3 mb-2 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
               {DEFAULT_AVATARS.map((url, idx) => (
                 <button 
                   key={idx}
                   onClick={() => handleSelectDefaultAvatar(url)}
-                  className="rounded-full overflow-hidden border-2 border-transparent hover:border-[rgb(var(--accent-main))] hover:scale-105 transition-all bg-[var(--bg-main)]"
+                  className="rounded-full overflow-hidden border-2 border-[var(--border-color)] hover:border-[rgb(var(--accent-main))] hover:scale-110 transition-all bg-[var(--bg-main)] aspect-square"
                 >
-                  <img src={url} alt={`Avatar ${idx}`} className="h-16 w-16" />
+                  <img src={url} alt={`Avatar ${idx}`} className="h-full w-full object-cover" />
                 </button>
               ))}
-            </div>
-
-            <div className="relative flex items-center py-4">
-              <div className="flex-grow border-t border-[var(--border-color)]"></div>
-              <span className="flex-shrink-0 mx-4 text-[var(--text-muted)] text-sm">OR</span>
-              <div className="flex-grow border-t border-[var(--border-color)]"></div>
-            </div>
-
-            <div className="mt-4">
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                accept="image/*" 
-                className="hidden" 
-              />
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-[var(--border-color-strong)] bg-[var(--bg-hover)] px-4 py-3 text-sm font-semibold text-[var(--text-strong)] hover:bg-[var(--bg-hover-strong)] transition-all disabled:opacity-50"
-              >
-                <Upload className="h-4 w-4" /> 
-                {uploading ? 'Uploading...' : 'Upload from Gallery'}
-              </button>
             </div>
           </div>
         </div>
