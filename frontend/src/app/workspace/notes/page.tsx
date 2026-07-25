@@ -6,33 +6,51 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Shell from '../../../components/Shell';
 import { useUser, useNotes, useTodos } from '../../../hooks/useSupabase';
 
+let audioCtx: AudioContext | null = null;
+
+const initAudio = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  } catch (e) {
+    console.error("Audio context init failed", e);
+  }
+};
+
 const playAlarmSound = () => {
   try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    if (!audioCtx) initAudio();
+    if (!audioCtx) return;
     
     // Play 4 loud dual-tone alarm beeps
     for (let i = 0; i < 4; i++) {
-      const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
       
       osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gainNode.connect(audioCtx.destination);
       
       // Use square wave for a harsh/loud alarm sound
       osc.type = 'square';
-      osc.frequency.setValueAtTime(880, ctx.currentTime + i * 0.5); // High pitch
-      osc.frequency.setValueAtTime(1100, ctx.currentTime + i * 0.5 + 0.15); // Higher pitch for siren effect
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime + i * 0.5); // High pitch
+      osc.frequency.setValueAtTime(1100, audioCtx.currentTime + i * 0.5 + 0.15); // Higher pitch for siren effect
       
       // Volume envelope to avoid popping
-      gainNode.gain.setValueAtTime(0, ctx.currentTime + i * 0.5);
-      gainNode.gain.linearRampToValueAtTime(0.8, ctx.currentTime + i * 0.5 + 0.05); // 80% volume (loud!)
-      gainNode.gain.setValueAtTime(0.8, ctx.currentTime + i * 0.5 + 0.3);
-      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.5 + 0.35);
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.5);
+      gainNode.gain.linearRampToValueAtTime(0.8, audioCtx.currentTime + i * 0.5 + 0.05); // 80% volume (loud!)
+      gainNode.gain.setValueAtTime(0.8, audioCtx.currentTime + i * 0.5 + 0.3);
+      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + i * 0.5 + 0.35);
       
-      osc.start(ctx.currentTime + i * 0.5);
-      osc.stop(ctx.currentTime + i * 0.5 + 0.4);
+      osc.start(audioCtx.currentTime + i * 0.5);
+      osc.stop(audioCtx.currentTime + i * 0.5 + 0.4);
     }
   } catch (e) {
     console.error("Audio playback failed", e);
@@ -146,6 +164,7 @@ export default function NotesPage() {
 
   const handleAddTodo = async (e: React.FormEvent) => {
     e.preventDefault();
+    initAudio(); // Initialize audio context on user interaction (mobile requirement)
     if (!newTask.trim()) return;
     await addTodo(newTask, reminderTime || null);
     setNewTask('');
@@ -154,7 +173,7 @@ export default function NotesPage() {
 
   return (
     <Shell>
-      <div className="flex h-full w-full flex-col p-6 lg:p-8" onClick={() => setOpenDropdown(null)}>
+      <div className="flex h-full w-full flex-col p-6 lg:p-8" onClick={() => { setOpenDropdown(null); initAudio(); }}>
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
