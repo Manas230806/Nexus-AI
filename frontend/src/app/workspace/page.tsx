@@ -68,9 +68,9 @@ export default function WorkspacePage() {
         
         {/* Subtle Grid */}
         <div 
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.2]"
           style={{
-            backgroundImage: `linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)`,
             backgroundSize: '40px 40px'
           }}
         />
