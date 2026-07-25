@@ -10,10 +10,15 @@ export const useWorkspace = () => {
 
   useEffect(() => {
     const fetchWorkspace = async () => {
-      const [groupRes, projectRes] = await Promise.all([api.get('/workspace/groups'), api.get('/workspace/projects')]);
-      setGroups(groupRes.data.groups || []);
-      setProjects(projectRes.data.projects || []);
-      setLoading(false);
+      try {
+        const [groupRes, projectRes] = await Promise.all([api.get('/workspace/groups'), api.get('/workspace/projects')]);
+        setGroups(groupRes.data?.groups || []);
+        setProjects(projectRes.data?.projects || []);
+      } catch (error) {
+        console.error('Failed to fetch workspace data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchWorkspace();

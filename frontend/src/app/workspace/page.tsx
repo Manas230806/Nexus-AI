@@ -181,75 +181,108 @@ export default function WorkspacePage() {
               Loading workspace data...
             </motion.div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* Projects Overview */}
-              <motion.section variants={itemVariants} className="h-full">
+              {/* Today's Intelligence */}
+              <motion.section variants={itemVariants} className="lg:col-span-2">
                 <div className="bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-[24px] p-6 md:p-8 backdrop-blur-md h-full">
                   <div className="flex items-center justify-between mb-8">
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                      <Folder className="h-6 w-6 text-sky-400" />
-                      Active Projects
+                      <Sparkles className="h-6 w-6 text-purple-400" />
+                      Today's Intelligence
                     </h2>
-                    <span className="bg-sky-400/20 text-sky-300 text-xs font-bold px-3 py-1 rounded-full">{projects.length} Total</span>
                   </div>
                   
-                  <div className="space-y-4">
-                    {projects.length > 0 ? projects.map((project) => (
-                      <motion.div 
-                        key={project._id}
-                        whileHover={{ scale: 1.02 }}
-                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer"
-                      >
-                        <div className="w-12 h-12 rounded-xl bg-sky-400/10 flex items-center justify-center text-sky-400">
-                          <Briefcase className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1 truncate">
-                          <p className="text-lg font-semibold text-white truncate">{project.name}</p>
-                          <p className="text-sm text-[var(--text-muted)] mb-1 truncate">{project.description || 'No description provided.'}</p>
-                        </div>
-                        <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center shrink-0">
-                          <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
-                        </div>
-                      </motion.div>
-                    )) : (
-                      <div className="text-[var(--text-muted)] text-sm">No active projects right now. Start building something new!</div>
-                    )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-sky-400/10 flex items-center justify-center text-sky-400">
+                        <Briefcase className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-[var(--text-muted)] mb-1">Active Projects</p>
+                        <p className="text-lg font-semibold text-white">{projects.length} Total</p>
+                      </div>
+                      <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center">
+                        <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+                      </div>
+                    </motion.div>
+
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-emerald-400/10 flex items-center justify-center text-emerald-400">
+                        <Users className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-[var(--text-muted)] mb-1">Your Groups</p>
+                        <p className="text-lg font-semibold text-white">{groups.length} Total</p>
+                      </div>
+                      <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center">
+                        <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+                      </div>
+                    </motion.div>
                   </div>
                 </div>
               </motion.section>
 
-              {/* Groups Overview */}
-              <motion.section variants={itemVariants} className="h-full">
+              {/* Recent Activity Timeline */}
+              <motion.section variants={itemVariants} className="lg:col-span-1">
                 <div className="bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-[24px] p-6 md:p-8 backdrop-blur-md h-full">
-                  <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                      <Users className="h-6 w-6 text-emerald-400" />
-                      Your Groups
-                    </h2>
-                    <span className="bg-emerald-400/20 text-emerald-300 text-xs font-bold px-3 py-1 rounded-full">{groups.length} Total</span>
-                  </div>
+                  <h2 className="text-xl font-bold text-white mb-6">Recent Activity</h2>
                   
-                  <div className="space-y-4">
-                    {groups.length > 0 ? groups.map((group) => (
+                  <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[1.2rem] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-white/10 before:to-transparent">
+                    {projects.slice(0, 3).map((project, i) => (
                       <motion.div 
-                        key={group._id}
-                        whileHover={{ scale: 1.02 }}
-                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer"
+                        key={`proj-${project._id || i}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 + i * 0.1 }}
+                        className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active"
                       >
-                        <div className="w-12 h-12 rounded-xl bg-emerald-400/10 flex items-center justify-center text-emerald-400">
-                          <Users className="h-6 w-6" />
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[var(--bg-panel)] bg-slate-800 text-[var(--text-muted)] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-colors group-hover:bg-slate-700">
+                          <div className={`w-6 h-6 rounded-full bg-sky-400/20 flex items-center justify-center`}>
+                            <Briefcase className="h-3 w-3 text-sky-400" />
+                          </div>
                         </div>
-                        <div className="flex-1 truncate">
-                          <p className="text-lg font-semibold text-white truncate">{group.name}</p>
-                          <p className="text-sm text-[var(--text-muted)] mb-1 truncate">{group.description || 'No description provided.'}</p>
-                        </div>
-                        <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center shrink-0">
-                          <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+                        
+                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl bg-white/[0.02] border border-white/5 group-hover:bg-white/[0.04] transition-colors">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold text-white text-sm truncate block">{project.name}</span>
+                          </div>
+                          <span className="text-xs text-[var(--text-muted)] font-mono">Project</span>
                         </div>
                       </motion.div>
-                    )) : (
-                      <div className="text-[var(--text-muted)] text-sm">You are not part of any groups yet.</div>
+                    ))}
+                    {groups.slice(0, 2).map((group, i) => (
+                      <motion.div 
+                        key={`grp-${group._id || i}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 + (projects.length + i) * 0.1 }}
+                        className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active"
+                      >
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[var(--bg-panel)] bg-slate-800 text-[var(--text-muted)] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-colors group-hover:bg-slate-700">
+                          <div className={`w-6 h-6 rounded-full bg-emerald-400/20 flex items-center justify-center`}>
+                            <Users className="h-3 w-3 text-emerald-400" />
+                          </div>
+                        </div>
+                        
+                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl bg-white/[0.02] border border-white/5 group-hover:bg-white/[0.04] transition-colors">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold text-white text-sm truncate block">{group.name}</span>
+                          </div>
+                          <span className="text-xs text-[var(--text-muted)] font-mono">Group</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                    {projects.length === 0 && groups.length === 0 && (
+                      <div className="text-[var(--text-muted)] text-sm ml-8 md:ml-0 md:text-center mt-4">
+                        No recent activity yet.
+                      </div>
                     )}
                   </div>
                 </div>
