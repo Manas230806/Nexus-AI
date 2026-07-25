@@ -65,11 +65,11 @@ export default function NexusCore() {
       // For idle, we check if it's light mode for appropriate shadow.
       default: 
         const idleColors = [
-          'shadow-[0_0_60px_rgba(249,115,22,0.3)] border-orange-500/30 bg-orange-500/5 dark:shadow-[0_0_60px_rgba(249,115,22,0.25)] dark:border-orange-500/30 dark:bg-[var(--bg-hover)]', // orange
-          'shadow-[0_0_60px_rgba(168,85,247,0.3)] border-purple-500/30 bg-purple-500/5 dark:shadow-[0_0_60px_rgba(168,85,247,0.25)] dark:border-purple-500/30 dark:bg-[var(--bg-hover)]', // purple
-          'shadow-[0_0_60px_rgba(74,222,128,0.3)] border-green-500/30 bg-green-500/5 dark:shadow-[0_0_60px_rgba(74,222,128,0.25)] dark:border-green-500/30 dark:bg-[var(--bg-hover)]', // green
-          'shadow-[0_0_60px_rgba(34,211,238,0.3)] border-cyan-500/30 bg-cyan-500/5 dark:shadow-[0_0_60px_rgba(34,211,238,0.25)] dark:border-cyan-500/30 dark:bg-[var(--bg-hover)]', // cyan
-          'shadow-[0_0_60px_rgba(59,130,246,0.3)] border-blue-500/30 bg-blue-500/5 dark:shadow-[0_0_60px_rgba(59,130,246,0.25)] dark:border-blue-500/30 dark:bg-[var(--bg-hover)]' // blue
+          'shadow-[0_0_70px_rgba(249,115,22,0.4)] border-orange-500/40 bg-orange-500/10 dark:shadow-[0_0_60px_rgba(249,115,22,0.35)] dark:border-orange-500/40 dark:bg-[var(--bg-hover)]', // orange
+          'shadow-[0_0_70px_rgba(168,85,247,0.4)] border-purple-500/40 bg-purple-500/10 dark:shadow-[0_0_60px_rgba(168,85,247,0.35)] dark:border-purple-500/40 dark:bg-[var(--bg-hover)]', // purple
+          'shadow-[0_0_70px_rgba(74,222,128,0.4)] border-green-500/40 bg-green-500/10 dark:shadow-[0_0_60px_rgba(74,222,128,0.35)] dark:border-green-500/40 dark:bg-[var(--bg-hover)]', // green
+          'shadow-[0_0_70px_rgba(34,211,238,0.4)] border-cyan-500/40 bg-cyan-500/10 dark:shadow-[0_0_60px_rgba(34,211,238,0.35)] dark:border-cyan-500/40 dark:bg-[var(--bg-hover)]', // cyan
+          'shadow-[0_0_70px_rgba(59,130,246,0.4)] border-blue-500/40 bg-blue-500/10 dark:shadow-[0_0_60px_rgba(59,130,246,0.35)] dark:border-blue-500/40 dark:bg-[var(--bg-hover)]' // blue
         ];
         return idleColors[idleColorIndex];
     }
