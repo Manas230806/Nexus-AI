@@ -17,7 +17,8 @@ export default function NeuralNetworkBackground() {
     
     const getThemeColor = () => {
       const isLight = document.documentElement.classList.contains('light');
-      return isLight ? 'rgba(99, 102, 241, 0.15)' : 'rgba(165, 180, 252, 0.15)'; 
+      // Stronger indigo (indigo-700) with higher opacity for light mode
+      return isLight ? 'rgba(67, 56, 202, 0.4)' : 'rgba(165, 180, 252, 0.15)'; 
     };
 
     const resize = () => {
@@ -65,9 +66,9 @@ export default function NeuralNetworkBackground() {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
-            const opacity = (1 - dist / 150) * 0.5;
-            ctx.strokeStyle = isLight ? `rgba(99, 102, 241, ${opacity})` : `rgba(165, 180, 252, ${opacity})`;
-            ctx.lineWidth = 0.5;
+            const opacity = (1 - dist / 150) * (isLight ? 0.8 : 0.5);
+            ctx.strokeStyle = isLight ? `rgba(67, 56, 202, ${opacity})` : `rgba(165, 180, 252, ${opacity})`;
+            ctx.lineWidth = isLight ? 0.8 : 0.5;
             ctx.stroke();
           }
         }
@@ -80,9 +81,9 @@ export default function NeuralNetworkBackground() {
            ctx.beginPath();
            ctx.moveTo(p.x, p.y);
            ctx.lineTo(mouse.x, mouse.y);
-           const opacity = (1 - distMouse / 200) * 0.8;
-           ctx.strokeStyle = isLight ? `rgba(139, 92, 246, ${opacity})` : `rgba(167, 139, 250, ${opacity})`;
-           ctx.lineWidth = 1;
+           const opacity = (1 - distMouse / 200) * (isLight ? 1.0 : 0.8);
+           ctx.strokeStyle = isLight ? `rgba(109, 40, 217, ${opacity})` : `rgba(167, 139, 250, ${opacity})`;
+           ctx.lineWidth = isLight ? 1.5 : 1;
            ctx.stroke();
            
            // Slight attraction

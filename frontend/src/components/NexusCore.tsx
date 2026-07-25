@@ -55,7 +55,7 @@ export default function NexusCore() {
       case 'meeting': return 'shadow-[0_0_60px_rgba(74,222,128,0.6)] border-green-500/50 bg-green-500/10'; // Green
       case 'error': return 'shadow-[0_0_60px_rgba(239,68,68,0.6)] border-red-500/50 bg-red-500/10'; // Red
       // For idle, we check if it's light mode for appropriate shadow.
-      default: return 'shadow-[0_0_40px_rgba(99,102,241,0.25)] border-[var(--border-color-strong)] bg-[var(--bg-hover)] dark:shadow-[0_0_40px_rgba(255,255,255,0.15)]'; 
+      default: return 'shadow-[0_0_60px_rgba(67,56,202,0.3)] border-indigo-500/30 bg-indigo-500/5 dark:shadow-[0_0_40px_rgba(255,255,255,0.15)] dark:border-[var(--border-color-strong)] dark:bg-[var(--bg-hover)]'; 
     }
   };
 
@@ -123,7 +123,7 @@ export default function NexusCore() {
         <div className="absolute inset-0 rounded-full bg-gradient-to-tl from-black/20 to-transparent pointer-events-none mix-blend-overlay" />
         
         {/* Inner glow effect */}
-        <div className="absolute inset-4 rounded-full blur-xl bg-gradient-to-r from-indigo-500/20 to-purple-500/20 pointer-events-none" />
+        <div className="absolute inset-4 rounded-full blur-xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 dark:from-indigo-500/20 dark:to-purple-500/20 pointer-events-none" />
 
         <div className="flex flex-col items-center text-center relative z-10">
           <span className="text-xl md:text-2xl font-bold tracking-widest text-[var(--text-strong)] font-mono">
@@ -145,7 +145,7 @@ export default function NexusCore() {
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
               transition={{ duration: 0.8 }}
-              className="text-sm text-[var(--text-muted)] font-medium tracking-wide"
+              className="text-sm text-indigo-900/80 dark:text-[var(--text-muted)] font-semibold dark:font-medium tracking-wide"
             >
               {thoughts[thoughtIndex]}
             </motion.p>
