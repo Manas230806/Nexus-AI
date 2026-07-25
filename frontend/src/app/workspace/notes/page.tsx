@@ -241,32 +241,34 @@ export default function NotesPage() {
         {/* To-Do View */}
         {activeTab === 'todos' && (
           <div className="flex flex-col flex-1 max-w-3xl mx-auto w-full">
-            <form onSubmit={handleAddTodo} className="flex gap-3 mb-8">
+            <form onSubmit={handleAddTodo} className="flex flex-col sm:flex-row gap-3 mb-8">
               <input 
                 type="text" 
                 value={newTask}
                 onChange={e => setNewTask(e.target.value)}
                 placeholder="What needs to be done today?" 
-                className="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] px-4 py-3 text-[var(--text-main)] outline-none focus:border-[rgb(var(--accent-main))] shadow-sm"
+                className="flex-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] px-4 py-3 text-[var(--text-main)] outline-none focus:border-[rgb(var(--accent-main))] shadow-sm"
               />
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-[var(--text-muted)]">
-                  <Clock className="w-4 h-4" />
+              <div className="flex gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-none">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-[var(--text-muted)]">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <input 
+                    type="time" 
+                    value={reminderTime}
+                    onChange={e => setReminderTime(e.target.value)}
+                    className="w-full h-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] pl-10 pr-4 py-3 text-[var(--text-main)] outline-none focus:border-[rgb(var(--accent-main))] shadow-sm"
+                  />
                 </div>
-                <input 
-                  type="time" 
-                  value={reminderTime}
-                  onChange={e => setReminderTime(e.target.value)}
-                  className="h-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] pl-10 pr-4 py-3 text-[var(--text-main)] outline-none focus:border-[rgb(var(--accent-main))] shadow-sm"
-                />
+                <button 
+                  type="submit"
+                  disabled={!newTask.trim()}
+                  className="rounded-xl bg-[rgb(var(--accent-main))] px-6 py-3 font-bold text-[var(--text-strong)] shadow-lg hover:opacity-90 disabled:opacity-50 transition whitespace-nowrap"
+                >
+                  Add
+                </button>
               </div>
-              <button 
-                type="submit"
-                disabled={!newTask.trim()}
-                className="rounded-xl bg-[rgb(var(--accent-main))] px-6 py-3 font-bold text-[var(--text-strong)] shadow-lg hover:opacity-90 disabled:opacity-50 transition"
-              >
-                Add
-              </button>
             </form>
 
             {todosLoading ? (
@@ -281,22 +283,22 @@ export default function NotesPage() {
                       <p className="text-sm text-[var(--text-muted)] italic">No active tasks. You're all caught up!</p>
                     ) : (
                       todos.filter(t => !t.completed).map(todo => (
-                        <div key={todo.id} className="group flex items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-4 transition hover:border-[rgb(var(--accent-main))]/50">
-                          <div className="flex items-center gap-4">
-                            <button onClick={() => toggleTodo(todo.id)} className="text-[var(--text-muted)] hover:text-[rgb(var(--accent-main))] transition">
+                        <div key={todo.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-4 transition hover:border-[rgb(var(--accent-main))]/50">
+                          <div className="flex items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto flex-1">
+                            <button onClick={() => toggleTodo(todo.id)} className="mt-0.5 sm:mt-0 shrink-0 text-[var(--text-muted)] hover:text-[rgb(var(--accent-main))] transition">
                               <Circle className="w-6 h-6" />
                             </button>
-                            <span className="text-[var(--text-strong)]">{todo.task}</span>
+                            <span className="text-[var(--text-strong)] break-words flex-1">{todo.task}</span>
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto pl-9 sm:pl-0 gap-4 shrink-0">
                             {todo.reminderTime && (
-                              <div className="flex items-center gap-1.5 text-xs text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
                                 <Bell className="w-3.5 h-3.5" />
                                 {todo.reminderTime}
                               </div>
                             )}
-                            <button onClick={() => deleteTodo(todo.id)} className="text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition">
-                              <Trash2 className="w-4 h-4" />
+                            <button onClick={() => deleteTodo(todo.id)} className="text-[var(--text-muted)] hover:text-red-400 sm:opacity-0 group-hover:opacity-100 transition p-1 sm:p-0">
+                              <Trash2 className="w-4 h-4 sm:w-4 sm:h-4" />
                             </button>
                           </div>
                         </div>
@@ -311,16 +313,18 @@ export default function NotesPage() {
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">Completed</h3>
                     <div className="space-y-2 opacity-60">
                       {todos.filter(t => t.completed).map(todo => (
-                        <div key={todo.id} className="group flex items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-4">
-                          <div className="flex items-center gap-4">
-                            <button onClick={() => toggleTodo(todo.id)} className="text-[rgb(var(--accent-main))]">
+                        <div key={todo.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-4">
+                          <div className="flex items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto flex-1">
+                            <button onClick={() => toggleTodo(todo.id)} className="mt-0.5 sm:mt-0 shrink-0 text-[rgb(var(--accent-main))]">
                               <CheckCircle2 className="w-6 h-6" />
                             </button>
-                            <span className="text-[var(--text-main)] line-through">{todo.task}</span>
+                            <span className="text-[var(--text-main)] line-through break-words flex-1">{todo.task}</span>
                           </div>
-                          <button onClick={() => deleteTodo(todo.id)} className="text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex justify-end w-full sm:w-auto shrink-0">
+                            <button onClick={() => deleteTodo(todo.id)} className="text-[var(--text-muted)] hover:text-red-400 sm:opacity-0 group-hover:opacity-100 transition p-1 sm:p-0">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
