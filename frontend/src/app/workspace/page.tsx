@@ -4,16 +4,21 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Search, Mic, Send, BrainCircuit, 
-  MessageSquare, Bot, Zap, Video, Mail, 
-  Bell, CheckCircle2, Lightbulb, FileText,
-  CalendarDays, ArrowRight
+  MessageSquare, Bot, Zap, Folder, Users, 
+  Briefcase, Plus, ArrowRight
 } from 'lucide-react';
 import Shell from '../../components/Shell';
+import { useUser } from '../../hooks/useSupabase';
+import { useWorkspace } from '../../hooks/useWorkspace';
 
 export default function WorkspacePage() {
+  const { userProfile } = useUser();
+  const { groups, projects, loading } = useWorkspace();
+  
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [greeting, setGreeting] = useState('Good Evening');
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -24,6 +29,13 @@ export default function WorkspacePage() {
     };
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good Morning');
+    else if (hour < 18) setGreeting('Good Afternoon');
+    else setGreeting('Good Evening');
   }, []);
 
   const containerVariants = {
@@ -100,8 +112,8 @@ export default function WorkspacePage() {
               transition={{ duration: 0.5 }}
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-[var(--text-muted)] mb-6"
             >
-              <Sparkles className="h-4 w-4 text-[var(--accent-glow)]" />
-              <span>Good Evening, Abhi 👋</span>
+              <Sparkles className="h-4 w-4 text-purple-400" />
+              <span>{greeting}, {userProfile?.name || 'User'} 👋</span>
             </motion.div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-10">
@@ -113,7 +125,7 @@ export default function WorkspacePage() {
               <div className={`absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-sky-500 rounded-2xl blur opacity-25 transition duration-500 ${isSearchFocused ? 'opacity-70 duration-200' : 'group-hover:opacity-50'}`} />
               <div className="relative flex items-center bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-2xl p-2 backdrop-blur-xl transition-all">
                 <div className="flex-1 flex items-center px-4">
-                  <Sparkles className="h-5 w-5 text-[var(--accent-glow)] mr-3" />
+                  <Sparkles className="h-5 w-5 text-purple-400 mr-3" />
                   <input 
                     type="text" 
                     placeholder="Ask Nexus anything..."
@@ -126,7 +138,7 @@ export default function WorkspacePage() {
                   <button className="p-2.5 text-[var(--text-muted)] hover:text-white rounded-xl hover:bg-white/5 transition-colors">
                     <Mic className="h-5 w-5" />
                   </button>
-                  <button className="p-2.5 bg-[var(--border-active)] hover:opacity-90 text-white rounded-xl transition-all shadow-[0_0_15px_rgba(109,93,246,0.5)]">
+                  <button className="p-2.5 bg-indigo-500 hover:opacity-90 text-white rounded-xl transition-all shadow-[0_0_15px_rgba(99,102,241,0.5)]">
                     <Send className="h-5 w-5" />
                   </button>
                 </div>
@@ -164,105 +176,87 @@ export default function WorkspacePage() {
           </motion.section>
 
           {/* Bottom Grid: Intelligence & Timeline */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Today's Intelligence */}
-            <motion.section variants={itemVariants} className="lg:col-span-2">
-              <div className="bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-[24px] p-6 md:p-8 backdrop-blur-md h-full">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <Sparkles className="h-6 w-6 text-[var(--accent-secondary)]" />
-                    Today's Intelligence
-                  </h2>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { label: 'Meetings Today', value: '3 Scheduled', icon: Video, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-                    { label: 'Messages Received', value: '12 Unread', icon: Mail, color: 'text-sky-400', bg: 'bg-sky-400/10' },
-                    { label: 'Active Reminders', value: '5 Pending', icon: Bell, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-                    { label: 'Pending Tasks', value: '8 Open', icon: CheckCircle2, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-                  ].map((stat, i) => (
-                    <motion.div 
-                      key={stat.label}
-                      whileHover={{ scale: 1.02 }}
-                      className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer"
-                    >
-                      <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color}`}>
-                        <stat.icon className="h-6 w-6" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-[var(--text-muted)] mb-1">{stat.label}</p>
-                        <p className="text-lg font-semibold text-white">{stat.value}</p>
-                      </div>
-                      <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center">
-                        <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
-                      </div>
-                    </motion.div>
-                  ))}
+          {loading ? (
+            <motion.div variants={itemVariants} className="text-center text-[var(--text-muted)] py-10">
+              Loading workspace data...
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Projects Overview */}
+              <motion.section variants={itemVariants} className="h-full">
+                <div className="bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-[24px] p-6 md:p-8 backdrop-blur-md h-full">
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                      <Folder className="h-6 w-6 text-sky-400" />
+                      Active Projects
+                    </h2>
+                    <span className="bg-sky-400/20 text-sky-300 text-xs font-bold px-3 py-1 rounded-full">{projects.length} Total</span>
+                  </div>
                   
-                  {/* AI Suggestion Full Width */}
-                  <motion.div 
-                    whileHover={{ scale: 1.01 }}
-                    className="md:col-span-2 mt-2 flex items-start gap-4 p-5 rounded-2xl bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 mt-1">
-                      <Lightbulb className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-indigo-300 mb-1">AI Suggestion</p>
-                      <p className="text-sm text-[var(--text-main)] leading-relaxed">
-                        You have a meeting with the Design Team in 2 hours. Should I prepare a summary of the "Project Proposal.pdf" for you?
-                      </p>
-                      <div className="mt-3 flex gap-2">
-                        <button className="px-3 py-1.5 rounded-lg bg-indigo-500 text-white text-xs font-semibold hover:bg-indigo-600 transition-colors">Yes, prepare it</button>
-                        <button className="px-3 py-1.5 rounded-lg bg-white/5 text-[var(--text-muted)] text-xs font-semibold hover:bg-white/10 transition-colors">Dismiss</button>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </motion.section>
-
-            {/* Recent Activity Timeline */}
-            <motion.section variants={itemVariants} className="lg:col-span-1">
-              <div className="bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-[24px] p-6 md:p-8 backdrop-blur-md h-full">
-                <h2 className="text-xl font-bold text-white mb-6">Recent Activity</h2>
-                
-                <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[1.2rem] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-white/10 before:to-transparent">
-                  {[
-                    { time: '1:00 PM', title: 'New AI Agent created', icon: Bot, color: 'text-emerald-400', bg: 'bg-emerald-400/20' },
-                    { time: '12:15 PM', title: 'Automation executed successfully', icon: Zap, color: 'text-orange-400', bg: 'bg-orange-400/20' },
-                    { time: '11:00 AM', title: 'Voice conversation completed', icon: Mic, color: 'text-sky-400', bg: 'bg-sky-400/20' },
-                    { time: '10:10 AM', title: 'Meeting scheduled with Design Team', icon: CalendarDays, color: 'text-indigo-400', bg: 'bg-indigo-400/20' },
-                    { time: '09:30 AM', title: 'AI summarized Project Proposal.pdf', icon: FileText, color: 'text-purple-400', bg: 'bg-purple-400/20' },
-                  ].map((activity, i) => (
-                    <motion.div 
-                      key={i}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 + i * 0.1 }}
-                      className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active"
-                    >
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[var(--bg-panel)] bg-slate-800 text-[var(--text-muted)] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-colors group-hover:bg-slate-700">
-                        <div className={`w-6 h-6 rounded-full ${activity.bg} flex items-center justify-center`}>
-                          <activity.icon className={`h-3 w-3 ${activity.color}`} />
+                  <div className="space-y-4">
+                    {projects.length > 0 ? projects.map((project) => (
+                      <motion.div 
+                        key={project._id}
+                        whileHover={{ scale: 1.02 }}
+                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-sky-400/10 flex items-center justify-center text-sky-400">
+                          <Briefcase className="h-6 w-6" />
                         </div>
-                      </div>
-                      
-                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl bg-white/[0.02] border border-white/5 group-hover:bg-white/[0.04] transition-colors">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-white text-sm">{activity.title}</span>
+                        <div className="flex-1 truncate">
+                          <p className="text-lg font-semibold text-white truncate">{project.name}</p>
+                          <p className="text-sm text-[var(--text-muted)] mb-1 truncate">{project.description || 'No description provided.'}</p>
                         </div>
-                        <span className="text-xs text-[var(--text-muted)] font-mono">{activity.time}</span>
-                      </div>
-                    </motion.div>
-                  ))}
+                        <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center shrink-0">
+                          <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+                        </div>
+                      </motion.div>
+                    )) : (
+                      <div className="text-[var(--text-muted)] text-sm">No active projects right now. Start building something new!</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.section>
+              </motion.section>
 
-          </div>
+              {/* Groups Overview */}
+              <motion.section variants={itemVariants} className="h-full">
+                <div className="bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-[24px] p-6 md:p-8 backdrop-blur-md h-full">
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                      <Users className="h-6 w-6 text-emerald-400" />
+                      Your Groups
+                    </h2>
+                    <span className="bg-emerald-400/20 text-emerald-300 text-xs font-bold px-3 py-1 rounded-full">{groups.length} Total</span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {groups.length > 0 ? groups.map((group) => (
+                      <motion.div 
+                        key={group._id}
+                        whileHover={{ scale: 1.02 }}
+                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-emerald-400/10 flex items-center justify-center text-emerald-400">
+                          <Users className="h-6 w-6" />
+                        </div>
+                        <div className="flex-1 truncate">
+                          <p className="text-lg font-semibold text-white truncate">{group.name}</p>
+                          <p className="text-sm text-[var(--text-muted)] mb-1 truncate">{group.description || 'No description provided.'}</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center shrink-0">
+                          <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+                        </div>
+                      </motion.div>
+                    )) : (
+                      <div className="text-[var(--text-muted)] text-sm">You are not part of any groups yet.</div>
+                    )}
+                  </div>
+                </div>
+              </motion.section>
+
+            </div>
+          )}
         </motion.div>
       </div>
 
@@ -286,13 +280,13 @@ export default function WorkspacePage() {
               </div>
               <div className="p-4 h-64 overflow-y-auto flex flex-col gap-4">
                 <div className="bg-white/5 rounded-2xl rounded-tl-sm p-3 text-sm text-[var(--text-main)] w-[85%]">
-                  Hi Abhi! I'm here to help you navigate your workspace and automate tasks. What can I do for you?
+                  Hi {userProfile?.name?.split(' ')[0] || 'there'}! I'm here to help you navigate your workspace and automate tasks. What can I do for you?
                 </div>
               </div>
               <div className="p-3 border-t border-white/5">
                 <div className="flex items-center bg-black/20 rounded-xl px-3 py-2">
                   <input type="text" placeholder="Message assistant..." className="flex-1 bg-transparent text-sm text-white outline-none" />
-                  <button className="text-[var(--accent-glow)]"><Send className="h-4 w-4" /></button>
+                  <button className="text-purple-400"><Send className="h-4 w-4" /></button>
                 </div>
               </div>
             </motion.div>
