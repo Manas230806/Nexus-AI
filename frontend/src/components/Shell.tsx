@@ -6,22 +6,25 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useUser } from '../hooks/useSupabase';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Bell, CalendarDays, LayoutDashboard, MessageSquareText, 
-  Settings, Sparkles, Search, Plus, User, LogOut, Video, 
-  FileText, Briefcase, MessageCircle, Menu, X, ArrowRight, Sun, Moon
+  Home, MessageSquare, Bot, Mic, Users, Folder, 
+  Briefcase, Zap, Calendar, Settings, Menu, X, 
+  LogOut, Sun, Moon, Search, Plus, ArrowRight, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import Logo from './Logo';
 
-const topNavItems = [
-  { href: '/workspace', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { href: '/workspace/chat', label: 'Messages', icon: MessageSquareText },
-  { href: '/workspace/dm', label: 'Direct Messages', icon: MessageCircle },
-  { href: '/workspace/ai', label: 'AI Assistant', icon: Sparkles, badge: 'NEW' },
-  { href: '/workspace/files', label: 'Workspace', icon: Briefcase },
-  { href: '/workspace/calendar', label: 'Calendar', icon: CalendarDays },
-  { href: '/workspace/notes', label: 'Notes', icon: FileText },
+const navItems = [
+  { href: '/workspace', label: 'Home', icon: Home, exact: true },
+  { href: '/workspace/chat', label: 'Chat', icon: MessageSquare },
+  { href: '/workspace/agents', label: 'Agents', icon: Bot },
+  { href: '/workspace/voice', label: 'Voice', icon: Mic },
+  { href: '/workspace/meetings', label: 'Meetings', icon: Users },
+  { href: '/workspace/files', label: 'Files', icon: Folder },
+  { href: '/workspace/overview', label: 'Workspace', icon: Briefcase },
+  { href: '/workspace/automations', label: 'Automations', icon: Zap },
+  { href: '/workspace/calendar', label: 'Calendar', icon: Calendar },
   { href: '/workspace/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -32,21 +35,18 @@ export default function Shell({ children }: { children: ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/auth/login');
   };
   
-  // New Message State
+  // New Message State (Keeping existing functionality)
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
   const [searchUsername, setSearchUsername] = useState('');
   const [searchError, setSearchError] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
-
-  const handleVideoCall = () => {
-    window.open('https://meet.google.com/new', '_blank');
-  };
 
   const handleNewMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,10 +101,18 @@ export default function Shell({ children }: { children: ReactNode }) {
   };
 
   const SidebarContent = (
-    <>
-      <div className="flex items-center justify-between px-6 py-6">
-        <Logo size={32} />
-        <div className="hidden md:block h-2 w-2 rounded-full bg-emerald-400" />
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-6 py-6 transition-all`}>
+        <div className="flex items-center gap-3">
+          <Logo size={isCollapsed ? 24 : 32} />
+          {!isCollapsed && <span className="font-bold text-lg hidden md:block">Nexus AI</span>}
+        </div>
+        <button 
+          className="hidden md:flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+        </button>
         <button 
           className="md:hidden text-[var(--text-muted)]" 
           onClick={() => setIsMobileMenuOpen(false)}
@@ -113,21 +121,10 @@ export default function Shell({ children }: { children: ReactNode }) {
         </button>
       </div>
 
-      <div className="px-4 mb-6">
-        <div className="relative flex items-center rounded-xl bg-[var(--bg-panel)] border border-[var(--border-color)] px-3 py-2 transition-colors focus-within:border-[rgb(var(--accent-main))]/50">
-          <Search className="h-4 w-4 text-[var(--text-muted)]" />
-          <input 
-            type="text" 
-            placeholder="Search..." 
-            className="ml-2 w-full bg-transparent text-sm text-[var(--text-main)] placeholder-slate-500 outline-none"
-          />
-        </div>
-      </div>
-
-      {userProfile && (
-        <div className="px-4 mb-6">
-          <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden">
+      {!isCollapsed && userProfile && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 mb-6">
+          <div className="flex items-center gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-hover)] p-3 backdrop-blur-md">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-bold text-white shadow-sm overflow-hidden">
               {(userProfile.avatar_url && userProfile.avatar_url.startsWith('http')) ? (
                 <img src={userProfile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
               ) : (
@@ -139,11 +136,23 @@ export default function Shell({ children }: { children: ReactNode }) {
               <span className="text-xs text-[var(--text-muted)] truncate">@{userProfile.username}</span>
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {isCollapsed && userProfile && (
+        <div className="flex justify-center mb-6 px-2">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-bold text-white shadow-sm overflow-hidden">
+            {(userProfile.avatar_url && userProfile.avatar_url.startsWith('http')) ? (
+              <img src={userProfile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+            ) : (
+              (userProfile.name || 'U').charAt(0).toUpperCase()
+            )}
+          </div>
         </div>
       )}
 
-      <nav className="flex-1 space-y-1 px-3 overflow-y-auto scrollbar-hide">
-        {topNavItems.map((item) => {
+      <nav className="flex-1 space-y-1.5 px-3 overflow-y-auto scrollbar-hide pb-4">
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = item.exact ? pathname === item.href : pathname?.startsWith(item.href);
           return (
@@ -151,70 +160,65 @@ export default function Shell({ children }: { children: ReactNode }) {
               key={item.href}
               href={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
-                active 
-                  ? 'bg-[var(--bg-active)] text-[var(--text-strong)] border border-[var(--border-active)] shadow-sm' 
-                  : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]'
-              }`}
+              className="block"
             >
-              <div className="flex items-center gap-3">
-                <Icon className={`h-4 w-4 ${active ? 'text-[rgb(var(--accent-main))]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`} />
-                {item.label}
-              </div>
-              {item.badge && (
-                <span className="rounded bg-[rgb(var(--accent-main))]/20 px-1.5 py-0.5 text-[10px] font-bold text-[rgb(var(--accent-main))] uppercase">
-                  {item.badge}
-                </span>
-              )}
+              <motion.div
+                whileHover={{ scale: 0.98, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                whileTap={{ scale: 0.95 }}
+                className={`group flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} rounded-2xl px-3 py-3 text-sm font-medium transition-colors ${
+                  active 
+                    ? 'bg-gradient-to-r from-[rgba(109,93,246,0.15)] to-transparent text-[var(--accent-glow)] border-l-2 border-[var(--border-active)] shadow-sm' 
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)] border-l-2 border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <motion.div
+                    whileHover={{ rotate: [-5, 5, -5, 0], transition: { duration: 0.3 } }}
+                  >
+                    <Icon className={`h-5 w-5 ${active ? 'text-[var(--accent-glow)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`} />
+                  </motion.div>
+                  {!isCollapsed && <span>{item.label}</span>}
+                </div>
+              </motion.div>
             </Link>
           );
         })}
 
-        <div className="mt-8 mb-2 px-3 flex items-center justify-between group cursor-pointer" onClick={() => setIsNewMessageOpen(true)}>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors">Direct Messages</span>
-          <button className="text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--bg-hover)] p-1 rounded transition-colors"><Plus className="h-3 w-3" /></button>
+        <div className={`mt-8 mb-2 px-3 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} group cursor-pointer`} onClick={() => setIsNewMessageOpen(true)}>
+          {!isCollapsed && <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors">Direct Messages</span>}
+          <button className="text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--bg-hover)] p-1.5 rounded-full transition-colors"><Plus className="h-4 w-4" /></button>
         </div>
-
 
         <button 
           onClick={handleSignOut}
-          className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-rose-400 transition-all"
+          className={`w-full group flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} gap-4 rounded-2xl px-3 py-3 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-rose-400 transition-all`}
         >
-          <LogOut className="h-4 w-4 text-[var(--text-muted)] group-hover:text-rose-400" />
-          Sign Out
+          <LogOut className="h-5 w-5 text-[var(--text-muted)] group-hover:text-rose-400" />
+          {!isCollapsed && <span>Sign Out</span>}
         </button>
         
         <button 
           onClick={toggleTheme}
-          className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] transition-all mt-4"
+          className={`w-full group flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} gap-4 rounded-2xl px-3 py-3 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] transition-all`}
         >
           {theme === 'dark' ? (
             <>
-              <Sun className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
-              Light Mode
+              <Sun className="h-5 w-5 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
+              {!isCollapsed && <span>Light Mode</span>}
             </>
           ) : (
             <>
-              <Moon className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
-              Dark Mode
+              <Moon className="h-5 w-5 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
+              {!isCollapsed && <span>Dark Mode</span>}
             </>
           )}
         </button>
       </nav>
-    </>
+    </div>
   );
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-[var(--bg-main)] font-sans text-[var(--text-main)]">
-      
-      {/* Background Grid Pattern */}
-      <div 
-        className="pointer-events-none absolute inset-0 z-0 opacity-20"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
-        }}
-      />
       
       {/* Mobile Top Bar */}
       <div className="md:hidden absolute top-0 left-0 right-0 h-16 border-b border-[var(--border-color)] bg-[var(--bg-sidebar)]/80 backdrop-blur-md z-40 flex items-center justify-between px-4">
@@ -228,68 +232,85 @@ export default function Shell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Sidebar Drawer (Mobile & Desktop) */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <motion.aside 
+        initial={false}
+        animate={{ width: isCollapsed ? 80 : 260 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0'}`}
+      >
         {SidebarContent}
-      </aside>
+      </motion.aside>
 
       {/* Main Content Area */}
-      <main className="relative z-10 flex-1 overflow-y-auto pt-16 md:pt-0 flex flex-col">
+      <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden pt-16 md:pt-0 flex flex-col bg-[var(--bg-main)]">
         {children}
       </main>
 
       {/* New Message Modal */}
-      {isNewMessageOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-3xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-[var(--text-strong)]">New Direct Message</h3>
-              <button onClick={() => setIsNewMessageOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            {searchError && (
-              <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-                {searchError}
+      <AnimatePresence>
+        {isNewMessageOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md rounded-[24px] border border-[var(--border-color-strong)] bg-[rgba(17,24,39,0.9)] p-6 shadow-2xl backdrop-blur-2xl"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-[var(--text-strong)]">New Direct Message</h3>
+                <button onClick={() => setIsNewMessageOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]">
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-            )}
-
-            <form onSubmit={handleNewMessage} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold uppercase text-[var(--text-muted)]">User Username</label>
-                <div className="relative mt-2">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-bold">@</span>
-                  <input 
-                    autoFocus
-                    type="text" 
-                    value={searchUsername}
-                    onChange={(e) => setSearchUsername(e.target.value)}
-                    placeholder="sarah123"
-                    required
-                    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] py-3 pl-10 pr-4 text-sm text-[var(--text-strong)] outline-none focus:border-[rgb(var(--accent-main))] focus:ring-1 focus:ring-[rgb(var(--accent-main))]"
-                  />
+              
+              {searchError && (
+                <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+                  {searchError}
                 </div>
-              </div>
-              <button 
-                type="submit" 
-                disabled={searchLoading}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-              >
-                {searchLoading ? 'Starting Chat...' : 'Start Chat'}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
+              )}
+
+              <form onSubmit={handleNewMessage} className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold uppercase text-[var(--text-muted)]">User Username</label>
+                  <div className="relative mt-2">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-bold">@</span>
+                    <input 
+                      autoFocus
+                      type="text" 
+                      value={searchUsername}
+                      onChange={(e) => setSearchUsername(e.target.value)}
+                      placeholder="sarah123"
+                      required
+                      className="w-full rounded-2xl border border-[var(--border-color)] bg-[rgba(255,255,255,0.05)] py-3 pl-10 pr-4 text-sm text-[var(--text-strong)] outline-none focus:border-[var(--border-active)] focus:ring-1 focus:ring-[var(--border-active)] transition-colors"
+                    />
+                  </div>
+                </div>
+                <button 
+                  type="submit" 
+                  disabled={searchLoading}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[var(--border-active)] px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+                >
+                  {searchLoading ? 'Starting Chat...' : 'Start Chat'}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       <style dangerouslySetInnerHTML={{__html: `
         .scrollbar-hide::-webkit-scrollbar {
