@@ -1,60 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkles, Search, Mic, Send, BrainCircuit, 
-  MessageSquare, Bot, Zap, Folder, Users, 
-  Briefcase, Plus, ArrowRight
-} from 'lucide-react';
+import { Sparkles, Briefcase, Users, ArrowRight, Bot, Send } from 'lucide-react';
 import Shell from '../../components/Shell';
 import { useUser } from '../../hooks/useSupabase';
 import { useWorkspace } from '../../hooks/useWorkspace';
+import NeuralNetworkBackground from '../../components/NeuralNetworkBackground';
+import NexusCore from '../../components/NexusCore';
 
 export default function WorkspacePage() {
   const { userProfile } = useUser();
   const { groups, projects, loading } = useWorkspace();
-  
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [greeting, setGreeting] = useState('Good Evening');
-  const [particles, setParticles] = useState<Array<{x: number, y: number, duration: number, delay: number}>>([]);
-
-  useEffect(() => {
-    setParticles(Array.from({ length: 25 }).map(() => ({
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      duration: Math.random() * 15 + 10, // 10s to 25s
-      delay: Math.random() * 5
-    })));
-  }, []);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: e.clientX,
-        y: e.clientY,
-      });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good Morning');
-    else if (hour < 18) setGreeting('Good Afternoon');
-    else setGreeting('Good Evening');
-  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
@@ -65,126 +29,18 @@ export default function WorkspacePage() {
 
   return (
     <Shell>
-      {/* Animated Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div 
-          className="absolute inset-0 transition-opacity duration-300"
-          style={{
-            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(139, 92, 246, 0.05), transparent 40%)`
-          }}
-        />
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500 opacity-20 blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-sky-500 opacity-20 blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
-        
-        {/* Subtle Grid */}
-        <div 
-          className="absolute inset-0 opacity-[0.2]"
-          style={{
-            backgroundImage: `linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }}
-        />
-        
-        {/* Floating Particles */}
-        {particles.map((p, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1.5 h-1.5 bg-[var(--text-strong)] rounded-full"
-            initial={{
-              left: `${p.x}vw`,
-              top: `${p.y}vh`,
-              opacity: 0,
-            }}
-            animate={{
-              top: [`${p.y}vh`, `${p.y - 20}vh`],
-              opacity: [0, 0.4, 0],
-            }}
-            transition={{
-              duration: p.duration,
-              repeat: Infinity,
-              ease: "linear",
-              delay: p.delay,
-            }}
-          />
-        ))}
-      </div>
+      <NeuralNetworkBackground />
 
       <div className="relative z-10 p-6 lg:p-10 h-full overflow-y-auto scrollbar-hide">
         <motion.div 
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="max-w-6xl mx-auto space-y-12 pb-24"
+          className="max-w-6xl mx-auto space-y-16 pb-24"
         >
-          {/* Hero Section */}
-          <motion.section variants={itemVariants} className="text-center pt-8 md:pt-16">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--bg-hover)] border border-[var(--border-color)] text-sm text-[var(--text-muted)] mb-6"
-            >
-              <Sparkles className="h-4 w-4 text-purple-400" />
-              <span>{greeting}, {userProfile?.name || 'User'} 👋</span>
-            </motion.div>
-            
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[var(--text-strong)] tracking-tight mb-10">
-              What are we building today?
-            </h1>
-
-            {/* AI Search Bar */}
-            <div className="max-w-2xl mx-auto relative group">
-              <div className={`absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-sky-500 rounded-2xl blur opacity-40 transition duration-500 ${isSearchFocused ? 'opacity-80 duration-200' : 'group-hover:opacity-60'}`} />
-              <div className="relative flex items-center bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-2xl p-2 backdrop-blur-xl transition-all">
-                <div className="flex-1 flex items-center px-4">
-                  <Sparkles className="h-5 w-5 text-purple-400 mr-3" />
-                  <input 
-                    type="text" 
-                    placeholder="Ask Nexus anything..."
-                    className="w-full bg-transparent text-[var(--text-strong)] placeholder-[var(--text-muted)] outline-none text-lg py-3"
-                    onFocus={() => setIsSearchFocused(true)}
-                    onBlur={() => setIsSearchFocused(false)}
-                  />
-                </div>
-                <div className="flex items-center gap-2 pr-2">
-                  <button className="p-2.5 text-[var(--text-muted)] hover:text-[var(--text-strong)] rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
-                    <Mic className="h-5 w-5" />
-                  </button>
-                  <button className="p-2.5 bg-indigo-500 hover:opacity-90 text-white rounded-xl transition-all shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-                    <Send className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.section>
-
-          {/* AI Quick Actions */}
-          <motion.section variants={itemVariants}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { title: 'Think', desc: 'Deep reasoning, brainstorming and analysis.', icon: BrainCircuit, color: 'from-purple-500 to-indigo-500' },
-                { title: 'Chat', desc: 'Start a new AI conversation.', icon: MessageSquare, color: 'from-sky-400 to-blue-500' },
-                { title: 'Agents', desc: 'Create or manage AI agents.', icon: Bot, color: 'from-emerald-400 to-teal-500' },
-                { title: 'Automations', desc: 'Build workflows and automate tasks.', icon: Zap, color: 'from-orange-400 to-red-500' },
-              ].map((action, i) => (
-                <motion.div
-                  key={action.title}
-                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                  className="relative group cursor-pointer"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-b from-[var(--bg-hover)] to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300 pointer-events-none" />
-                  <div className="h-full bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-2xl p-6 backdrop-blur-md overflow-hidden relative">
-                    <div className="absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br opacity-20 blur-3xl rounded-full transition-all duration-500 group-hover:opacity-40 group-hover:scale-150" />
-                    
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center text-white mb-4 shadow-lg`}>
-                      <action.icon className="h-6 w-6" />
-                    </div>
-                    <h3 className="text-xl font-bold text-[var(--text-strong)] mb-2">{action.title}</h3>
-                    <p className="text-sm text-[var(--text-muted)] leading-relaxed">{action.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+          {/* Nexus Core Centerpiece */}
+          <motion.section variants={itemVariants} className="flex flex-col items-center justify-center pt-12 md:pt-20">
+            <NexusCore />
           </motion.section>
 
           {/* Bottom Grid: Intelligence & Timeline */}
@@ -195,13 +51,13 @@ export default function WorkspacePage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* Today's Intelligence */}
+              {/* System Intelligence */}
               <motion.section variants={itemVariants} className="lg:col-span-2">
                 <div className="bg-[var(--bg-panel)] border border-[var(--border-color-strong)] rounded-[24px] p-6 md:p-8 backdrop-blur-md h-full">
                   <div className="flex items-center justify-between mb-8">
                     <h2 className="text-2xl font-bold text-[var(--text-strong)] flex items-center gap-3">
                       <Sparkles className="h-6 w-6 text-purple-400" />
-                      Today's Intelligence
+                      System Intelligence
                     </h2>
                   </div>
                   
