@@ -34,8 +34,12 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
   const [forwardError, setForwardError] = useState('');
   const [forwarding, setForwarding] = useState(false);
 
-  // Mock Voice Recording state
+  // Voice & File Staging states
   const [isRecording, setIsRecording] = useState(false);
+  const [showUPinMenu, setShowUPinMenu] = useState(false);
+  const [stagedFiles, setStagedFiles] = useState<{name: string, type: string, data: string, size: number}[]>([]);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   // Online Presence
   const onlineUsers = usePresence(currentUserId);
@@ -137,25 +141,75 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
     }
   };
 
-  const handleSend = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!draft.trim() || !currentUserId) return;
+  const MAX_FILE_SIZE = 1024 * 1024; // 1MB
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
     
-    if (editingMsgId) {
-      await editMessage(editingMsgId, draft.trim());
-      setEditingMsgId(null);
-    } else {
-      await sendMessage(draft.trim(), currentUserId);
-    }
-    setDraft('');
-    setShowEmojiPicker(false);
+    files.forEach(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`File ${file.name} is too large. Max size is 1MB to prevent database lag.`);
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Data = event.target?.result as string;
+        setStagedFiles(prev => [...prev, { name: file.name, type: file.type, data: base64Data, size: file.size }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    e.target.value = '';
+    setShowUPinMenu(false);
   };
 
-  const handleMediaUpload = () => {
-    const fileName = prompt("Enter a file name to attach (e.g., photo.jpg, document.pdf):");
-    if (fileName && currentUserId) {
-      sendMessage(`[File Attachment] ${fileName}`, currentUserId);
+  const removeStagedFile = (index: number) => {
+    setStagedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSendContact = () => {
+    const name = prompt("Enter contact name:");
+    const phone = prompt("Enter contact phone number:");
+    if (name && phone) {
+      setStagedFiles(prev => [...prev, { name, type: 'contact', data: phone, size: 0 }]);
     }
+    setShowUPinMenu(false);
+  };
+
+  const parseMessageContent = (content: string) => {
+    try {
+      if (content.startsWith('{') && content.includes('"attachments"')) {
+        const parsed = JSON.parse(content);
+        return { text: parsed.text || '', attachments: parsed.attachments || [] };
+      }
+    } catch (e) {}
+    return { text: content, attachments: [] };
+  };
+
+  const handleSend = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if ((!draft.trim() && stagedFiles.length === 0) || !currentUserId) return;
+    
+    let contentToSave = draft.trim();
+    if (stagedFiles.length > 0) {
+      contentToSave = JSON.stringify({
+        text: draft.trim(),
+        attachments: stagedFiles
+      });
+    }
+    
+    if (editingMsgId) {
+      await editMessage(editingMsgId, contentToSave);
+      setEditingMsgId(null);
+    } else {
+      await sendMessage(contentToSave, currentUserId);
+    }
+    setDraft('');
+    setStagedFiles([]);
+    setShowEmojiPicker(false);
+    setShowUPinMenu(false);
   };
 
   const handleEventCreate = () => {
@@ -364,7 +418,52 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
                         </div>
 
                         {/* Message Content */}
-                        <div className={`pr-4 ${msg.content === '[This message was deleted]' ? 'italic text-white/50' : ''}`}>{msg.content}</div>
+                        <div className={`pr-4 ${msg.content === '[This message was deleted]' ? 'italic text-white/50' : ''}`}>
+                          {(() => {
+                            if (msg.content === '[This message was deleted]') return msg.content;
+                            const { text, attachments } = parseMessageContent(msg.content);
+                            return (
+                              <div className="flex flex-col gap-2">
+                                {attachments && attachments.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-1">
+                                    {attachments.map((att: any, idx: number) => (
+                                      <div key={idx} className="relative overflow-hidden rounded-xl border border-white/10 bg-black/20 p-1 shadow-md group">
+                                        {att.type.startsWith('image/') ? (
+                                          <img src={att.data} alt={att.name} className="h-32 w-auto max-w-[200px] object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform" onClick={() => {
+                                            const w = window.open();
+                                            if (w) w.document.write(`<img src="${att.data}" />`);
+                                          }} />
+                                        ) : att.type === 'contact' ? (
+                                          <div className="flex flex-col gap-1 px-3 py-2 bg-black/30 rounded-lg min-w-[150px]">
+                                            <div className="flex items-center gap-2 text-sky-400">
+                                              <UserPlus className="h-4 w-4" />
+                                              <span className="text-sm font-bold truncate">{att.name}</span>
+                                            </div>
+                                            <span className="text-xs text-[var(--text-muted)] font-mono">{att.data}</span>
+                                            <button className="mt-1 text-[10px] uppercase font-bold text-emerald-400 hover:text-emerald-300 w-full text-center py-1 bg-emerald-500/10 rounded">Save Contact</button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-white/5 rounded-lg transition-colors" onClick={() => {
+                                            const a = document.createElement('a');
+                                            a.href = att.data;
+                                            a.download = att.name;
+                                            a.click();
+                                          }}>
+                                            <FileText className="h-5 w-5 text-purple-400" />
+                                            <span className="text-sm font-medium text-slate-200 max-w-[120px] truncate" title={att.name}>{att.name}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {text && (
+                                  <div className="leading-relaxed whitespace-pre-wrap">{text}</div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
                         
                         {/* Time inside bubble */}
                         <div className="absolute bottom-1 right-2 text-[10px] text-white/60 font-medium flex items-center gap-1">
@@ -405,8 +504,53 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
               </div>
             )}
 
+            {stagedFiles.length > 0 && (
+              <div className="max-w-4xl mx-auto px-2 mb-2">
+                <div className="flex flex-wrap gap-2 p-3 bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-xl shadow-lg">
+                  {stagedFiles.map((file, idx) => (
+                    <div key={idx} className="relative group bg-[var(--bg-hover)] rounded-lg border border-[var(--border-color)] p-1 flex items-center gap-2 pr-8">
+                      {file.type.startsWith('image/') ? (
+                        <img src={file.data} className="h-10 w-10 object-cover rounded" />
+                      ) : file.type === 'contact' ? (
+                        <div className="h-10 w-10 flex items-center justify-center bg-sky-500/20 text-sky-400 rounded"><UserPlus className="h-5 w-5" /></div>
+                      ) : (
+                        <div className="h-10 w-10 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded"><FileText className="h-5 w-5" /></div>
+                      )}
+                      <div className="flex flex-col max-w-[100px]">
+                        <span className="text-xs font-medium truncate text-[var(--text-main)]">{file.name}</span>
+                        {file.size > 0 && <span className="text-[10px] text-[var(--text-muted)]">{(file.size / 1024).toFixed(1)} KB</span>}
+                      </div>
+                      <button onClick={() => removeStagedFile(idx)} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-red-400 hover:bg-[var(--bg-active)] rounded-full">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-end gap-2 max-w-4xl mx-auto pb-safe">
               <div className={`relative flex flex-1 items-end bg-[#202c33] transition-all shadow-lg border border-[var(--border-color)] ${editingMsgId ? 'rounded-b-[24px]' : 'rounded-[24px]'}`}>
+                {showUPinMenu && (
+                  <div className="absolute bottom-full left-10 mb-3 z-50 flex flex-col gap-3 p-3 bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-2xl shadow-2xl origin-bottom-left animate-in zoom-in duration-200">
+                    <button onClick={() => { docInputRef.current?.click(); setShowUPinMenu(false); }} className="flex flex-col items-center gap-1 group">
+                      <div className="h-12 w-12 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"><FileText className="h-5 w-5" /></div>
+                      <span className="text-[10px] font-medium text-[var(--text-muted)]">Document</span>
+                    </button>
+                    <button onClick={() => { photoInputRef.current?.click(); setShowUPinMenu(false); }} className="flex flex-col items-center gap-1 group">
+                      <div className="h-12 w-12 rounded-full bg-rose-500 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"><ImageIcon className="h-5 w-5" /></div>
+                      <span className="text-[10px] font-medium text-[var(--text-muted)]">Photos</span>
+                    </button>
+                    <button onClick={handleSendContact} className="flex flex-col items-center gap-1 group">
+                      <div className="h-12 w-12 rounded-full bg-sky-500 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"><UserPlus className="h-5 w-5" /></div>
+                      <span className="text-[10px] font-medium text-[var(--text-muted)]">Contact</span>
+                    </button>
+                  </div>
+                )}
+                
+                <input type="file" ref={docInputRef} onChange={handleFileChange} className="hidden" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" />
+                <input type="file" ref={photoInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/*" />
+
                 <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`p-3 transition-colors shrink-0 ${showEmojiPicker ? 'text-[rgb(var(--accent-main))]' : 'text-[var(--text-muted)] hover:text-white'}`}><Smile className="h-6 w-6" /></button>
                 
                 <textarea
@@ -424,9 +568,13 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
                 />
                 
                 <div className="flex items-center p-2 gap-1 shrink-0">
-                  <button onClick={handleMediaUpload} className="p-2 text-[var(--text-muted)] hover:text-white transition-colors" title="Attach"><Paperclip className="h-5 w-5" /></button>
-                  {draft.trim() === '' && (
-                    <button className="hidden sm:block p-2 text-[var(--text-muted)] hover:text-white transition-colors" title="Camera"><ImageIcon className="h-5 w-5" /></button>
+                  <button onClick={() => setShowUPinMenu(!showUPinMenu)} className={`p-2 transition-colors ${showUPinMenu ? 'text-white bg-[var(--bg-hover)] rounded-full' : 'text-[var(--text-muted)] hover:text-white'}`} title="Attach">
+                    <Paperclip className="h-5 w-5" />
+                  </button>
+                  {draft.trim() === '' && stagedFiles.length === 0 && (
+                    <button onClick={() => photoInputRef.current?.click()} className="hidden sm:block p-2 text-[var(--text-muted)] hover:text-white transition-colors" title="Photo">
+                      <ImageIcon className="h-5 w-5" />
+                    </button>
                   )}
                 </div>
               </div>
@@ -437,7 +585,7 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
                 }`} 
                 onClick={() => draft.trim() ? handleSend() : setIsRecording(!isRecording)}
               >
-                {draft.trim() ? (
+                {draft.trim() || stagedFiles.length > 0 ? (
                   <Send className="h-5 w-5 ml-1" />
                 ) : (
                   <Mic className="h-5 w-5" />
