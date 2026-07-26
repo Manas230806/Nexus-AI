@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Plus, MessageCircle, X, Users } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Shell from '../../../components/Shell';
 import { supabase } from '../../../lib/supabaseClient';
 import ChatArea from '../../../components/ChatArea';
@@ -13,6 +13,7 @@ export default function DirectMessagesPage() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dpPreviewUser, setDpPreviewUser] = useState<{ name: string, avatar_url: string } | null>(null);
 
   const handleOpenChat = (id: string) => {
     setActiveConversationId(id);
@@ -285,7 +286,10 @@ export default function DirectMessagesPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3 w-full overflow-hidden">
-                    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-[var(--text-strong)] font-bold shadow-sm overflow-hidden border border-[var(--border-color)]">
+                    <div 
+                      onClick={(e) => { e.stopPropagation(); setDpPreviewUser({ name: conv.name || 'Unknown', avatar_url: conv.avatar_url || '' }); }}
+                      className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-[var(--text-strong)] font-bold shadow-sm overflow-hidden border border-[var(--border-color)] cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                       {(conv.avatar_url && conv.avatar_url.startsWith('http')) ? (
                         <img src={conv.avatar_url} alt="avatar" className="h-full w-full object-cover" />
                       ) : (
@@ -440,6 +444,42 @@ export default function DirectMessagesPage() {
           </div>
         </div>
       )}
+      
+      {/* DP Full Screen Preview Modal */}
+      <AnimatePresence>
+        {dpPreviewUser && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 cursor-pointer"
+            onClick={() => setDpPreviewUser(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative max-w-sm w-full aspect-square md:max-w-md bg-[var(--bg-panel)] rounded-full overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] cursor-default" 
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setDpPreviewUser(null)} 
+                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/80 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+              {(dpPreviewUser.avatar_url && dpPreviewUser.avatar_url.startsWith('http')) ? (
+                <img src={dpPreviewUser.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center bg-[rgb(var(--accent-main))] text-[120px] font-bold text-white">
+                  {(dpPreviewUser.name || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* New Group Modal */}
       {isNewGroupModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-[var(--text-main)]">
