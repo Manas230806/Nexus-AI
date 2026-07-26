@@ -581,9 +581,9 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
               
               <button 
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-all shadow-lg ${
-                  draft.trim() ? 'bg-[#00a884] text-white hover:bg-[#008f6f]' : 'bg-[#00a884] text-white hover:bg-[#008f6f]'
+                  draft.trim() || stagedFiles.length > 0 ? 'bg-[#00a884] text-white hover:bg-[#008f6f]' : 'bg-[#00a884] text-white hover:bg-[#008f6f]'
                 }`} 
-                onClick={() => draft.trim() ? handleSend() : setIsRecording(!isRecording)}
+                onClick={() => (draft.trim() || stagedFiles.length > 0) ? handleSend() : setIsRecording(!isRecording)}
               >
                 {draft.trim() || stagedFiles.length > 0 ? (
                   <Send className="h-5 w-5 ml-1" />
