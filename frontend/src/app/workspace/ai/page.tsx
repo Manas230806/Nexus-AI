@@ -10,6 +10,7 @@ type Message = {
   id: string;
   role: 'user' | 'ai';
   content: string;
+  attachments?: { name: string; url: string; type: string }[];
 };
 
 const suggestedPrompts = [
@@ -23,6 +24,7 @@ export default function AIOxerviewPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -40,23 +42,72 @@ export default function AIOxerviewPage() {
     scrollToBottom();
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+    
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in this browser.");
+      return;
+    }
+    
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0].transcript)
+        .join('');
+      setInput(transcript);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    
+    recognition.start();
+  };
+
+  const handleStop = () => {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    setIsTyping(false);
+  };
+
   const handleSubmit = async (e?: React.FormEvent, customPrompt?: string) => {
     e?.preventDefault();
     const promptText = customPrompt || input;
     if (!promptText.trim() || isTyping) return;
 
-    const newUserMsg: Message = { id: Date.now().toString(), role: 'user', content: promptText };
+    const currentFiles = [...files]; // Save files before clearing
+    setFiles([]);
+
+    const attachments = currentFiles.map(f => ({
+      name: f.name,
+      url: URL.createObjectURL(f),
+      type: f.type
+    }));
+
+    const newUserMsg: Message = { id: Date.now().toString(), role: 'user', content: promptText, attachments };
     setMessages(prev => [...prev, newUserMsg]);
     setInput('');
     setIsTyping(true);
+    
+    if (window.speechSynthesis) window.speechSynthesis.cancel(); // Stop any ongoing speech
 
     try {
       const formData = new FormData();
       formData.append('prompt', promptText);
-      files.forEach(f => formData.append('files', f));
-      
-      const currentFiles = [...files]; // Save in case of error
-      setFiles([]);
+      currentFiles.forEach(f => formData.append('files', f));
 
       const res = await fetch('/api/ai', {
         method: 'POST',
@@ -81,6 +132,11 @@ export default function AIOxerviewPage() {
           setMessages(prev => prev.map(msg => 
             msg.id === aiMsgId ? { ...msg, content: aiContent } : msg
           ));
+        }
+        
+        if (window.speechSynthesis) {
+           const utterance = new SpeechSynthesisUtterance(aiContent);
+           window.speechSynthesis.speak(utterance);
         }
       }
     } catch (err) {
@@ -153,8 +209,26 @@ export default function AIOxerviewPage() {
                    style={{ perspective: 1000 }}
                  >
                     {msg.role === 'user' ? (
-                      <div className="max-w-[85%] sm:max-w-[75%] rounded-[32px] rounded-tr-sm bg-gradient-to-br from-sky-500/10 to-indigo-600/10 backdrop-blur-xl border border-white/10 px-5 sm:px-6 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-                        <p className="text-[14px] sm:text-[15px] leading-relaxed text-white/90">{msg.content}</p>
+                      <div className="flex flex-col items-end gap-2 max-w-[85%] sm:max-w-[75%]">
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="flex flex-wrap justify-end gap-2 w-full">
+                            {msg.attachments.map((att, idx) => (
+                              <div key={idx} className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-1 shadow-lg group">
+                                {att.type.startsWith('image/') ? (
+                                  <img src={att.url} alt={att.name} className="h-24 w-auto max-w-[200px] object-cover rounded-xl cursor-pointer hover:scale-105 transition-transform" onClick={() => window.open(att.url, '_blank')} />
+                                ) : (
+                                  <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-white/5 rounded-xl transition-colors" onClick={() => window.open(att.url, '_blank')}>
+                                    <FileIcon className="h-5 w-5 text-purple-400" />
+                                    <span className="text-sm font-medium text-slate-200 max-w-[120px] truncate">{att.name}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="rounded-[32px] rounded-tr-sm bg-gradient-to-br from-sky-500/10 to-indigo-600/10 backdrop-blur-xl border border-white/10 px-5 sm:px-6 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                          <p className="text-[14px] sm:text-[15px] leading-relaxed text-white/90">{msg.content}</p>
+                        </div>
                       </div>
                     ) : (
                       <div className="max-w-[95%] sm:max-w-[85%] rounded-[32px] rounded-tl-sm bg-black/50 backdrop-blur-2xl border border-white/5 px-5 sm:px-6 py-4 sm:py-5 shadow-[0_10px_50px_rgba(0,0,0,0.8)] relative overflow-hidden group">
@@ -248,11 +322,11 @@ export default function AIOxerviewPage() {
               
               <div className="flex shrink-0 items-center gap-2 px-2 pb-1">
                 {isTyping ? (
-                  <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/40 hover:text-rose-400 hover:bg-white/10 transition-all">
+                  <button type="button" onClick={handleStop} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/40 hover:text-rose-400 hover:bg-white/10 transition-all">
                     <StopCircle className="h-5 w-5" />
                   </button>
                 ) : (
-                  <button type="button" className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full text-white/40 hover:bg-white/10 hover:text-emerald-300 transition-all">
+                  <button type="button" onClick={toggleListening} className={`flex h-10 w-10 items-center justify-center rounded-full transition-all ${isListening ? 'bg-emerald-500/20 text-emerald-400 animate-pulse' : 'text-white/40 hover:bg-white/10 hover:text-emerald-300'}`}>
                     <Mic className="h-5 w-5" />
                   </button>
                 )}
