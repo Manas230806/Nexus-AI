@@ -61,17 +61,24 @@ body {
 
 a, button, [role="button"], [tabindex] {
   outline: none !important;
+  outline-style: none !important;
+  outline-width: 0 !important;
   -webkit-tap-highlight-color: transparent !important;
+  -webkit-focus-ring-color: rgba(0, 0, 0, 0) !important;
 }
 
 a *, button * {
   cursor: pointer !important;
+  pointer-events: auto !important; /* ensure inner spans can be clicked without propagating text cursors if handled right */
 }
 
-*, ::before, ::after, *:focus, *:focus-visible {
+*, ::before, ::after, *:focus, *:focus-visible, *:focus-within, *:active {
   outline: none !important;
+  outline-color: transparent !important;
+  -webkit-focus-ring-color: transparent !important;
   --tw-ring-shadow: 0 0 #0000 !important;
   --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
 }
 
 ::selection {
