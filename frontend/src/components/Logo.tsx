@@ -26,7 +26,7 @@ export default function Logo({ className = "", size = 32, showText = true }: Log
         className="rounded-xl object-contain logo-dark-mode" 
       />
       {showText && (
-        <span className="text-lg font-semibold text-[var(--text-strong)] tracking-tight">Nexus AI</span>
+        <span className="text-lg font-bold text-[var(--text-strong)] tracking-tight">Nexus AI</span>
       )}
     </div>
   );

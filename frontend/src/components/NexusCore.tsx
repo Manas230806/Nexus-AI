@@ -128,7 +128,7 @@ export default function NexusCore() {
               <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center backdrop-blur-md border border-[var(--border-color-strong)] transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] bg-[var(--bg-panel)]`}>
                 <mod.icon className={`w-5 h-5 md:w-6 md:h-6 ${mod.color}`} />
               </div>
-              <span className="absolute top-14 md:top-16 text-[10px] md:text-xs font-semibold text-[var(--text-strong)] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <span className="absolute top-14 md:top-16 text-[10px] md:text-xs font-bold text-[var(--text-strong)] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                 {mod.label}
               </span>
             </motion.div>
@@ -159,10 +159,10 @@ export default function NexusCore() {
         <div className="absolute inset-4 rounded-full blur-xl bg-gradient-to-r from-indigo-600/10 to-purple-600/10 dark:from-white/5 dark:to-transparent pointer-events-none transition-all duration-700" />
 
         <div className="flex flex-col items-center text-center relative z-10">
-          <span className="text-xl md:text-2xl font-bold tracking-widest text-[var(--text-strong)] font-mono">
+          <span className="text-xl md:text-2xl font-black tracking-widest text-[var(--text-strong)] font-mono">
             NEXUS
           </span>
-          <span className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)] mt-1">
+          <span className="text-xs font-bold uppercase tracking-[0.3em] text-[var(--text-muted)] mt-1">
             Core
           </span>
         </div>
