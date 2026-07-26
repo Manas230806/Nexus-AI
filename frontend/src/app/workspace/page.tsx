@@ -18,10 +18,58 @@ export default function WorkspacePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Speak "Welcome Boss"
+    try {
+      if ('speechSynthesis' in window) {
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance("Welcome Boss");
+        utterance.rate = 0.9;
+        utterance.pitch = 0.8;
+        utterance.volume = 0.8;
+        
+        const setVoiceAndSpeak = () => {
+          const voices = window.speechSynthesis.getVoices();
+          // Try to find a British Male voice (like Jarvis)
+          const jarvisVoice = voices.find(v => 
+            v.name.includes('UK English Male') || 
+            v.name.includes('Daniel') || 
+            v.name.includes('Google UK English Male') || 
+            (v.lang === 'en-GB' && v.name.includes('Male'))
+          ) || voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang.startsWith('en'));
+          
+          if (jarvisVoice) {
+            utterance.voice = jarvisVoice;
+          }
+          window.speechSynthesis.speak(utterance);
+        };
+
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          setVoiceAndSpeak();
+        } else {
+          // Voices load asynchronously in some browsers
+          window.speechSynthesis.onvoiceschanged = () => {
+            setVoiceAndSpeak();
+            window.speechSynthesis.onvoiceschanged = null;
+          };
+        }
+      }
+    } catch (e) {
+      console.log('Speech synthesis blocked or not supported', e);
+    }
+
     const timer = setTimeout(() => {
       setShowIntro(false);
     }, 1500);
-    return () => clearTimeout(timer);
+    
+    return () => {
+      clearTimeout(timer);
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
   }, []);
 
   const scrollToBottom = () => {
