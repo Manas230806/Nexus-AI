@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText, Image as ImageIcon, Calendar, Edit2, Forward, X, Camera, Trash2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { useMessages, usePresence } from '../hooks/useSupabase';
@@ -504,49 +505,74 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
               </div>
             )}
 
-            {stagedFiles.length > 0 && (
-              <div className="max-w-4xl mx-auto px-2 mb-2">
-                <div className="flex flex-wrap gap-2 p-3 bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-xl shadow-lg">
-                  {stagedFiles.map((file, idx) => (
-                    <div key={idx} className="relative group bg-[var(--bg-hover)] rounded-lg border border-[var(--border-color)] p-1 flex items-center gap-2 pr-8">
-                      {file.type.startsWith('image/') ? (
-                        <img src={file.data} className="h-10 w-10 object-cover rounded" />
-                      ) : file.type === 'contact' ? (
-                        <div className="h-10 w-10 flex items-center justify-center bg-sky-500/20 text-sky-400 rounded"><UserPlus className="h-5 w-5" /></div>
-                      ) : (
-                        <div className="h-10 w-10 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded"><FileText className="h-5 w-5" /></div>
-                      )}
-                      <div className="flex flex-col max-w-[100px]">
-                        <span className="text-xs font-medium truncate text-[var(--text-main)]">{file.name}</span>
-                        {file.size > 0 && <span className="text-[10px] text-[var(--text-muted)]">{(file.size / 1024).toFixed(1)} KB</span>}
-                      </div>
-                      <button onClick={() => removeStagedFile(idx)} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-red-400 hover:bg-[var(--bg-active)] rounded-full">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <AnimatePresence>
+              {stagedFiles.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0, y: 10 }}
+                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: 10 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                  className="max-w-4xl mx-auto px-2 mb-2 overflow-hidden"
+                >
+                  <div className="flex flex-wrap gap-2 p-3 bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-xl shadow-lg">
+                    <AnimatePresence>
+                      {stagedFiles.map((file, idx) => (
+                        <motion.div 
+                          key={idx}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                          className="relative group bg-[var(--bg-hover)] rounded-lg border border-[var(--border-color)] p-1 flex items-center gap-2 pr-8"
+                        >
+                          {file.type.startsWith('image/') ? (
+                            <img src={file.data} className="h-10 w-10 object-cover rounded" />
+                          ) : file.type === 'contact' ? (
+                            <div className="h-10 w-10 flex items-center justify-center bg-sky-500/20 text-sky-400 rounded"><UserPlus className="h-5 w-5" /></div>
+                          ) : (
+                            <div className="h-10 w-10 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded"><FileText className="h-5 w-5" /></div>
+                          )}
+                          <div className="flex flex-col max-w-[100px]">
+                            <span className="text-xs font-medium truncate text-[var(--text-main)]">{file.name}</span>
+                            {file.size > 0 && <span className="text-[10px] text-[var(--text-muted)]">{(file.size / 1024).toFixed(1)} KB</span>}
+                          </div>
+                          <button onClick={() => removeStagedFile(idx)} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-red-400 hover:bg-[var(--bg-active)] rounded-full">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="flex items-end gap-2 max-w-4xl mx-auto pb-safe">
               <div className={`relative flex flex-1 items-end bg-[#202c33] transition-all shadow-lg border border-[var(--border-color)] ${editingMsgId ? 'rounded-b-[24px]' : 'rounded-[24px]'}`}>
-                {showUPinMenu && (
-                  <div className="absolute bottom-full left-10 mb-3 z-50 flex flex-col gap-3 p-3 bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-2xl shadow-2xl origin-bottom-left animate-in zoom-in duration-200">
-                    <button onClick={() => { docInputRef.current?.click(); setShowUPinMenu(false); }} className="flex flex-col items-center gap-1 group">
-                      <div className="h-12 w-12 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"><FileText className="h-5 w-5" /></div>
-                      <span className="text-[10px] font-medium text-[var(--text-muted)]">Document</span>
-                    </button>
-                    <button onClick={() => { photoInputRef.current?.click(); setShowUPinMenu(false); }} className="flex flex-col items-center gap-1 group">
-                      <div className="h-12 w-12 rounded-full bg-rose-500 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"><ImageIcon className="h-5 w-5" /></div>
-                      <span className="text-[10px] font-medium text-[var(--text-muted)]">Photos</span>
-                    </button>
-                    <button onClick={handleSendContact} className="flex flex-col items-center gap-1 group">
-                      <div className="h-12 w-12 rounded-full bg-sky-500 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"><UserPlus className="h-5 w-5" /></div>
-                      <span className="text-[10px] font-medium text-[var(--text-muted)]">Contact</span>
-                    </button>
-                  </div>
-                )}
+                <AnimatePresence>
+                  {showUPinMenu && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                      className="absolute bottom-full left-10 mb-3 z-50 flex flex-col gap-3 p-3 bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-2xl shadow-2xl origin-bottom-left"
+                    >
+                      <button onClick={() => { docInputRef.current?.click(); setShowUPinMenu(false); }} className="flex flex-col items-center gap-1 group">
+                        <div className="h-12 w-12 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"><FileText className="h-5 w-5" /></div>
+                        <span className="text-[10px] font-medium text-[var(--text-muted)]">Document</span>
+                      </button>
+                      <button onClick={() => { photoInputRef.current?.click(); setShowUPinMenu(false); }} className="flex flex-col items-center gap-1 group">
+                        <div className="h-12 w-12 rounded-full bg-rose-500 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"><ImageIcon className="h-5 w-5" /></div>
+                        <span className="text-[10px] font-medium text-[var(--text-muted)]">Photos</span>
+                      </button>
+                      <button onClick={handleSendContact} className="flex flex-col items-center gap-1 group">
+                        <div className="h-12 w-12 rounded-full bg-sky-500 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"><UserPlus className="h-5 w-5" /></div>
+                        <span className="text-[10px] font-medium text-[var(--text-muted)]">Contact</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 
                 <input type="file" ref={docInputRef} onChange={handleFileChange} className="hidden" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" />
                 <input type="file" ref={photoInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/*" />
