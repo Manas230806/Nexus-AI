@@ -93,7 +93,7 @@ export default function AIOxerviewPage() {
 
   return (
     <Shell>
-      <div className="relative h-[100dvh] md:h-full w-full overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#020617] to-black text-white">
+      <div className="relative flex-1 flex flex-col h-full w-full overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#020617] to-black text-white">
         
         {/* Animated Background Particles / Grid */}
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
@@ -119,7 +119,7 @@ export default function AIOxerviewPage() {
               rotate: { duration: 4, repeat: Infinity, ease: "linear" },
               scale: { duration: isTyping ? 1.5 : 5, repeat: Infinity, ease: "easeInOut" }
             }}
-            className="relative flex h-64 w-64 items-center justify-center rounded-full bg-gradient-to-tr from-sky-400 via-indigo-500 to-purple-600 shadow-[0_0_120px_rgba(99,102,241,0.6)] blur-[2px]"
+            className="relative flex h-48 w-48 sm:h-64 sm:w-64 items-center justify-center rounded-full bg-gradient-to-tr from-sky-400 via-indigo-500 to-purple-600 shadow-[0_0_120px_rgba(99,102,241,0.6)] blur-[2px]"
           >
             <div className="absolute inset-[3px] rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center overflow-hidden">
                {/* Inner Core Rings */}
@@ -139,12 +139,12 @@ export default function AIOxerviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="mt-16 text-center"
+                className="mt-8 sm:mt-16 text-center"
               >
-                <h1 className="text-5xl font-light tracking-widest text-white/90 uppercase mb-4 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                <h1 className="text-4xl sm:text-5xl font-light tracking-widest text-white/90 uppercase mb-4 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
                   Nexus <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-purple-500">Mind</span>
                 </h1>
-                <div className="flex items-center justify-center gap-3 text-sky-200/50 tracking-widest uppercase text-sm">
+                <div className="flex items-center justify-center gap-3 text-sky-200/50 tracking-widest uppercase text-xs sm:text-sm">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
@@ -152,7 +152,7 @@ export default function AIOxerviewPage() {
                   Awaiting neural link
                 </div>
                 
-                <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-4 pointer-events-auto">
+                <div className="mt-8 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pointer-events-auto px-4">
                   {suggestedPrompts.map((prompt, i) => (
                     <motion.button
                       key={prompt}
@@ -171,7 +171,7 @@ export default function AIOxerviewPage() {
         </motion.div>
 
         {/* 3D Glassmorphic Messages Layer */}
-        <div className="absolute inset-0 z-10 flex flex-col pb-[120px] pt-32 px-4 sm:px-8 overflow-y-auto scrollbar-hide" ref={scrollContainerRef}>
+        <div className="absolute inset-0 z-10 flex flex-col pb-[160px] sm:pb-[120px] pt-24 sm:pt-32 px-4 sm:px-8 overflow-y-auto scrollbar-hide" ref={scrollContainerRef}>
           <div className="mx-auto w-full max-w-3xl flex flex-col gap-8">
             <AnimatePresence>
               {messages.map((msg, i) => (
@@ -184,16 +184,16 @@ export default function AIOxerviewPage() {
                    style={{ perspective: 1000 }}
                  >
                     {msg.role === 'user' ? (
-                      <div className="max-w-[75%] rounded-[32px] rounded-tr-sm bg-gradient-to-br from-sky-500/10 to-indigo-600/10 backdrop-blur-xl border border-white/10 px-6 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-                        <p className="text-[15px] leading-relaxed text-white/90">{msg.content}</p>
+                      <div className="max-w-[85%] sm:max-w-[75%] rounded-[32px] rounded-tr-sm bg-gradient-to-br from-sky-500/10 to-indigo-600/10 backdrop-blur-xl border border-white/10 px-5 sm:px-6 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                        <p className="text-[14px] sm:text-[15px] leading-relaxed text-white/90">{msg.content}</p>
                       </div>
                     ) : (
-                      <div className="max-w-[85%] rounded-[32px] rounded-tl-sm bg-black/50 backdrop-blur-2xl border border-white/5 px-6 py-5 shadow-[0_10px_50px_rgba(0,0,0,0.8)] relative overflow-hidden group">
+                      <div className="max-w-[95%] sm:max-w-[85%] rounded-[32px] rounded-tl-sm bg-black/50 backdrop-blur-2xl border border-white/5 px-5 sm:px-6 py-4 sm:py-5 shadow-[0_10px_50px_rgba(0,0,0,0.8)] relative overflow-hidden group">
                          {/* Subtle shine effect on AI messages */}
                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-[100%] group-hover:animate-[shimmer_2s_infinite]" />
                          
                          {msg.content.split('\n').map((line, idx) => (
-                            <p key={idx} className={`text-[15px] leading-relaxed text-slate-300 ${line ? 'mb-3' : 'mb-0'}`}>
+                            <p key={idx} className={`text-[14px] sm:text-[15px] leading-relaxed text-slate-300 ${line ? 'mb-3' : 'mb-0'}`}>
                               {line}
                             </p>
                          ))}
@@ -207,7 +207,7 @@ export default function AIOxerviewPage() {
                    animate={{ opacity: 1, y: 0, scale: 1 }}
                    className="flex w-full justify-start"
                  >
-                   <div className="max-w-[85%] rounded-[32px] rounded-tl-sm bg-black/50 backdrop-blur-2xl border border-white/5 px-6 py-5 shadow-[0_10px_50px_rgba(0,0,0,0.8)] flex items-center gap-3">
+                   <div className="max-w-[95%] sm:max-w-[85%] rounded-[32px] rounded-tl-sm bg-black/50 backdrop-blur-2xl border border-white/5 px-5 sm:px-6 py-4 sm:py-5 shadow-[0_10px_50px_rgba(0,0,0,0.8)] flex items-center gap-3">
                      <Logo showText={false} size={20} className="animate-pulse opacity-50" />
                      <div className="flex gap-1.5">
                        <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-400" style={{ animationDelay: '0ms' }} />
