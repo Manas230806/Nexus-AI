@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Mic, Video, Bot, Zap, Folder, BrainCircuit, Briefcase, MessageSquareText } from 'lucide-react';
+import { MessageCircle, Mic, Video, Bot, Zap, Folder, BrainCircuit, Briefcase, MessageSquareText, Newspaper } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const thoughts = [
@@ -18,7 +18,7 @@ const modules = [
   { id: 'meetings', label: 'Meetings', icon: Video, color: 'text-green-400', bg: 'bg-green-400/10' },
   { id: 'agents', label: 'Agents', icon: Bot, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
   { id: 'workspace', label: 'Workspace', icon: Briefcase, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-  { id: 'files', label: 'Files', icon: Folder, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  { id: 'quickread', label: 'Quick Read', icon: Newspaper, color: 'text-blue-400', bg: 'bg-blue-400/10' },
   { id: 'memory', label: 'Memory', icon: BrainCircuit, color: 'text-purple-400', bg: 'bg-purple-400/10' },
 ];
 
@@ -91,6 +91,10 @@ export default function NexusCore() {
     else if (id === 'agents') {
       setCoreState('thinking');
       setTimeout(() => router.push('/workspace/ai'), 400);
+    }
+    else if (id === 'quickread') {
+      setCoreState('voice'); // using a generic blue glow for reading
+      setTimeout(() => router.push('/workspace/quickread'), 400);
     }
     else {
       setCoreState('idle');
