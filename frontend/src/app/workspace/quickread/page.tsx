@@ -1,48 +1,84 @@
 'use client';
 
 import { useState } from 'react';
-import Shell from '../../../components/Shell';
-import CategoryBar from '../../../components/news/CategoryBar';
-import NewsCard from '../../../components/news/NewsCard';
+import Shell from '@/components/Shell';
+import CategoryBar from '@/components/news/CategoryBar';
+import NewsCard from '@/components/news/NewsCard';
 import { Newspaper, Search, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-// Mock Data for Premium Look
-const mockNews = [
-  {
-    id: '1',
-    category: 'Technology',
-    headline: 'OpenAI Announces GPT-5 Architectures Integrating Real-time World Models',
-    summary: 'OpenAI has revealed details about its upcoming GPT-5 architecture, moving beyond static text prediction to incorporate real-time, multi-modal world modeling. The new system processes live visual and audio streams simultaneously, allowing the AI to understand environmental context instantly. Early tests show a 400% increase in spatial reasoning accuracy.',
-    publisher: 'TechCrunch',
-    publishedTime: '10 mins ago',
-    readTime: '3 min read',
-    imageUrl: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1200&auto=format&fit=crop',
-    publisherLogo: 'TC'
-  },
-  {
-    id: '2',
-    category: 'Markets',
-    headline: 'Nvidia Surpasses $4 Trillion Market Cap as AI Demand Surges Unabated',
-    summary: 'Driven by unprecedented demand for its next-generation Blackwell GPUs, Nvidia has become the first company to cross the $4 trillion market capitalization threshold. Tech giants are expanding data centers at a record pace, securing Nvidia chips years in advance. Analysts predict sustained growth through 2027.',
-    publisher: 'Bloomberg',
-    publishedTime: '45 mins ago',
-    readTime: '4 min read',
-    imageUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1200&auto=format&fit=crop',
-    publisherLogo: 'B'
-  },
-  {
-    id: '3',
-    category: 'Science',
-    headline: 'NASA’s Artemis III Mission Uncovers Subsurface Water Ice Near Lunar South Pole',
-    summary: 'Ground-penetrating radar from advanced lunar rovers has confirmed massive deposits of water ice just meters below the surface at the Moon\'s south pole. This discovery is a critical milestone for long-term lunar habitation, providing potential sources for drinking water, oxygen, and rocket fuel for future Mars missions.',
-    publisher: 'Reuters',
-    publishedTime: '2 hours ago',
-    readTime: '2 min read',
-    imageUrl: 'https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?q=80&w=1200&auto=format&fit=crop',
-    publisherLogo: 'R'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
+
+function NewsFeed({ activeCategory }: { activeCategory: string }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['news', activeCategory],
+    queryFn: async () => {
+      const res = await fetch(`/api/news?category=${encodeURIComponent(activeCategory)}`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to fetch news');
+      }
+      return res.json();
+    },
+    refetchInterval: 300000, // Refetch every 5 minutes
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center pt-20 pb-20 space-y-4">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+        <p className="text-sm font-medium text-[var(--text-muted)] animate-pulse tracking-wider uppercase">Fetching latest stories...</p>
+      </div>
+    );
   }
-];
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center pt-20 text-center">
+        <div className="bg-red-500/10 p-4 rounded-full mb-4">
+          <Newspaper className="h-8 w-8 text-red-500" />
+        </div>
+        <h3 className="text-lg font-bold text-[var(--text-strong)] mb-2">Failed to load news</h3>
+        <p className="text-sm text-[var(--text-muted)] max-w-md">
+          {error instanceof Error ? error.message : 'An unknown error occurred. Please check your API key and connection.'}
+        </p>
+      </div>
+    );
+  }
+
+  const articles = data?.articles || [];
+
+  if (articles.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center pt-20 text-center">
+        <div className="bg-[var(--bg-hover)] p-4 rounded-full mb-4">
+          <Search className="h-8 w-8 text-[var(--text-muted)]" />
+        </div>
+        <h3 className="text-lg font-bold text-[var(--text-strong)] mb-2">No stories found</h3>
+        <p className="text-sm text-[var(--text-muted)] max-w-md">
+          We couldn't find any news for "{activeCategory}". Try exploring another topic.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-8 pb-20">
+      {articles.map((article: any, index: number) => (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: Math.min(index * 0.1, 1), duration: 0.5, ease: "easeOut" }}
+          key={article.id}
+        >
+          <NewsCard article={article} />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
 
 export default function QuickReadPage() {
   const [activeCategory, setActiveCategory] = useState('For You');
@@ -80,25 +116,9 @@ export default function QuickReadPage() {
 
         {/* News Feed Container */}
         <div className="flex-1 overflow-y-auto bg-[var(--bg-panel)] p-4 lg:p-8 scrollbar-hide relative">
-           
-           <div className="max-w-3xl mx-auto space-y-8 pb-20">
-             {mockNews.map((article, index) => (
-               <motion.div
-                 initial={{ opacity: 0, y: 20 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
-                 key={article.id}
-               >
-                 <NewsCard article={article} />
-               </motion.div>
-             ))}
-             
-             <div className="text-center pt-8 pb-4">
-               <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-               <p className="mt-2 text-xs font-medium text-[var(--text-muted)] tracking-wider uppercase">Loading more stories...</p>
-             </div>
-           </div>
-           
+           <QueryClientProvider client={queryClient}>
+             <NewsFeed activeCategory={activeCategory} />
+           </QueryClientProvider>
         </div>
       </div>
     </Shell>
