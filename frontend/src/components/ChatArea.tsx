@@ -337,10 +337,21 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-6 scroll-smooth scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <div className="flex justify-center mb-6 sm:mb-8">
+            <div className="flex justify-center mb-4">
               <span className="rounded-full bg-[var(--bg-hover)] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] border border-[var(--border-color)]">
                 Chat Started
               </span>
+            </div>
+
+            <div className="flex justify-center mb-6 sm:mb-8">
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 text-center shadow-sm backdrop-blur-md max-w-md mx-4">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500 shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </span>
+                <p className="text-[10px] sm:text-xs leading-relaxed text-emerald-600 dark:text-emerald-400 font-medium text-left">
+                  Messages and files are secured with military-grade client-side AES encryption. Nobody outside of this chat, not even the database, can read them.
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-col gap-6 max-w-3xl mx-auto">

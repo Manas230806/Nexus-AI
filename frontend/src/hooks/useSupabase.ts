@@ -1,6 +1,30 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { User, Session } from '@supabase/supabase-js';
+import CryptoJS from 'crypto-js';
+
+const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 32) || 'default-fallback-key';
+const E2EE_PREFIX = 'E2EE::';
+
+export const encryptPayload = (text: string) => {
+  if (!text || text === '[This message was deleted]') return text;
+  return E2EE_PREFIX + CryptoJS.AES.encrypt(text, ENCRYPTION_KEY).toString();
+};
+
+export const decryptPayload = (ciphertext: string) => {
+  if (!ciphertext || ciphertext === '[This message was deleted]') return ciphertext;
+  if (ciphertext.startsWith(E2EE_PREFIX)) {
+    try {
+      const actualCipher = ciphertext.replace(E2EE_PREFIX, '');
+      const bytes = CryptoJS.AES.decrypt(actualCipher, ENCRYPTION_KEY);
+      const originalText = bytes.toString(CryptoJS.enc.Utf8);
+      return originalText || ciphertext;
+    } catch (e) {
+      return 'Error: Could not decrypt message';
+    }
+  }
+  return ciphertext; // Fallback for old unencrypted messages
+};
 
 let cachedUser: User | null = null;
 let cachedUserProfile: any = null;
@@ -139,7 +163,13 @@ export function useMessages(conversationId: string | null) {
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
         
-      if (data) setMessages(data);
+      if (data) {
+        const decryptedData = data.map((msg: any) => ({
+          ...msg,
+          content: decryptPayload(msg.content)
+        }));
+        setMessages(decryptedData);
+      }
       setLoading(false);
     };
 
@@ -162,12 +192,13 @@ export function useMessages(conversationId: string | null) {
               .then(({ data: userData }: { data: any }) => {
                 const newMessage = {
                   ...payload.new,
+                  content: decryptPayload(payload.new.content),
                   users: userData
                 };
                 setMessages((prev) => [...prev, newMessage]);
               });
           } else if (payload.eventType === 'UPDATE') {
-            setMessages((prev) => prev.map(msg => String(msg.id) === String(payload.new.id) ? { ...msg, content: payload.new.content ?? msg.content } : msg));
+            setMessages((prev) => prev.map(msg => String(msg.id) === String(payload.new.id) ? { ...msg, content: payload.new.content ? decryptPayload(payload.new.content) : msg.content } : msg));
           } else if (payload.eventType === 'DELETE') {
             setMessages((prev) => prev.filter(msg => String(msg.id) !== String(payload.old.id)));
           }
@@ -186,7 +217,7 @@ export function useMessages(conversationId: string | null) {
     const { error } = await supabase.from('messages').insert({
       conversation_id: conversationId,
       sender_id: senderId,
-      content,
+      content: encryptPayload(content),
     });
     if (error) {
       console.error('Error sending message:', error);
@@ -200,7 +231,7 @@ export function useMessages(conversationId: string | null) {
     // Optimistically update local state for instant feedback
     setMessages((prev) => prev.map(msg => String(msg.id) === String(messageId) ? { ...msg, content: newContent } : msg));
 
-    const { data, error } = await supabase.from('messages').update({ content: newContent }).eq('id', messageId).select();
+    const { data, error } = await supabase.from('messages').update({ content: encryptPayload(newContent) }).eq('id', messageId).select();
     
     if (error) {
       console.error('Error editing message:', error);
@@ -216,7 +247,7 @@ export function useMessages(conversationId: string | null) {
     await supabase.from('messages').insert({
       conversation_id: targetConversationId,
       sender_id: senderId,
-      content,
+      content: encryptPayload(content),
     });
   };
 
@@ -568,7 +599,8 @@ export function useMemoryVault(userId: string | null) {
     if (data) {
       setVaultNoteId(data.id);
       try {
-        const parsed = JSON.parse(data.content);
+        const decryptedContent = decryptPayload(data.content);
+        const parsed = JSON.parse(decryptedContent);
         setMemories(Array.isArray(parsed) ? parsed : []);
       } catch (e) {
         setMemories([]);
@@ -577,7 +609,7 @@ export function useMemoryVault(userId: string | null) {
       const { data: newData, error: createError } = await supabase.from('notes').insert({
         user_id: userId,
         title: '__SYSTEM_MEMORY_VAULT__',
-        content: '[]',
+        content: encryptPayload('[]'),
         preview: 'System note for secure memory vault.',
         tags: ['system', 'hidden']
       }).select().single();
@@ -597,7 +629,7 @@ export function useMemoryVault(userId: string | null) {
 
   const saveMemories = async (newMemories: MemoryItem[], noteId: string) => {
     const { error } = await supabase.from('notes').update({
-      content: JSON.stringify(newMemories)
+      content: encryptPayload(JSON.stringify(newMemories))
     }).eq('id', noteId);
     
     if (error) {
