@@ -95,7 +95,7 @@ export default function NexusCore() {
       else if (id === 'chat') router.push('/workspace/dm');
       else if (id === 'memory') router.push('/workspace/memory');
       else if (id === 'quickread') router.push('/workspace/quickread');
-    }, 550);
+    }, 250);
   };
 
   return (
@@ -113,14 +113,14 @@ export default function NexusCore() {
               initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
               animate={
                 warpingTo === mod.id 
-                  ? { opacity: 0, scale: 5, x: 0, y: 0, zIndex: 50 } 
+                  ? { opacity: 0, scale: 15, x: 0, y: 0, zIndex: 50 } 
                   : warpingTo 
                     ? { opacity: 0, scale: 0, x: 0, y: 0 } 
                     : { opacity: 1, x, y, scale: 1 }
               }
               exit={{ opacity: 0, x: 0, y: 0, scale: 0 }}
-              transition={warpingTo ? { duration: 0.5, ease: "easeInOut" } : { type: "spring", stiffness: 200, damping: 20, delay: index * 0.05 }}
-              className="absolute z-20 flex flex-col items-center cursor-pointer group"
+              transition={warpingTo ? { type: "spring", stiffness: 400, damping: 30 } : { type: "spring", stiffness: 300, damping: 25, delay: index * 0.04 }}
+              className="absolute z-20 flex flex-col items-center cursor-pointer group will-change-transform"
               onClick={(e) => {
                 e.stopPropagation();
                 handleModuleClick(mod.id);
@@ -145,13 +145,13 @@ export default function NexusCore() {
           scale: coreState === 'idle' ? [1, 1.03, 1] :
             coreState === 'thinking' ? [1, 1.08, 1, 1.04, 1] : 1,
         }}
-        transition={warpingTo ? { duration: 0.4, ease: "easeInOut" } : {
+        transition={warpingTo ? { type: "spring", stiffness: 400, damping: 30 } : {
           duration: coreState === 'idle' ? 4 : 2,
           repeat: Infinity,
           ease: "easeInOut"
         }}
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`relative z-30 flex items-center justify-center w-36 h-36 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-full cursor-pointer backdrop-blur-3xl border transition-all duration-700 ${getCoreGlow()}`}
+        className={`relative z-30 flex items-center justify-center w-36 h-36 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-full cursor-pointer backdrop-blur-3xl border transition-all duration-300 will-change-transform ${getCoreGlow()}`}
       >
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent pointer-events-none mix-blend-overlay" />
         <div className="absolute inset-0 rounded-full bg-gradient-to-tl from-black/20 to-transparent pointer-events-none mix-blend-overlay" />
