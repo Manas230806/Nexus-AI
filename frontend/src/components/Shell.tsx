@@ -151,13 +151,24 @@ export default function Shell({ children }: { children: ReactNode }) {
               key={item.href}
               href={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`group flex items-center justify-between outline-none focus:outline-none select-none cursor-pointer rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+              className={`group block w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 active 
                   ? 'bg-[var(--bg-active)] text-[var(--text-strong)] border border-[var(--border-active)] shadow-sm' 
                   : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] border border-transparent'
               }`}
+              style={{
+                outline: 'none',
+                boxShadow: 'none',
+                WebkitTapHighlightColor: 'transparent',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                cursor: 'pointer'
+              }}
             >
-              <div className="flex items-center gap-3">
+              <div 
+                className="flex items-center gap-3 w-full h-full"
+                style={{ cursor: 'pointer', pointerEvents: 'none' }}
+              >
                 <Icon className={`h-4 w-4 ${active ? 'text-[rgb(var(--accent-main))]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'}`} />
                 {item.label}
               </div>
