@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Mic, Video, Bot, Zap, Folder, BrainCircuit, Briefcase, MessageSquareText } from 'lucide-react';
+import { MessageCircle, Mic, Video, Bot, Zap, Folder, BrainCircuit, Briefcase, MessageSquareText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const thoughts = [
@@ -13,7 +13,7 @@ const thoughts = [
 ];
 
 const modules = [
-  { id: 'chat', label: 'Chat', icon: MessageSquare, color: 'text-sky-400', bg: 'bg-sky-400/10' },
+  { id: 'chat', label: 'DMs', icon: MessageCircle, color: 'text-sky-400', bg: 'bg-sky-400/10' },
   { id: 'public_chat', label: 'Messages', icon: MessageSquareText, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
   { id: 'meetings', label: 'Meetings', icon: Video, color: 'text-green-400', bg: 'bg-green-400/10' },
   { id: 'agents', label: 'Agents', icon: Bot, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
