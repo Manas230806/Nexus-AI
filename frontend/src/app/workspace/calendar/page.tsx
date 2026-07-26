@@ -98,7 +98,7 @@ export default function CalendarPage() {
 
   return (
     <Shell>
-      <div className="flex h-full w-full flex-col space-y-6 p-6 lg:p-8">
+      <div className="flex min-h-full w-full flex-col space-y-6 p-4 sm:p-6 lg:p-8">
         
         {/* Header Tabs */}
         <div className="flex gap-6 border-b border-[var(--border-color-strong)]">
