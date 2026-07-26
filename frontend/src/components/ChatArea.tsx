@@ -41,6 +41,7 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
   const [stagedFiles, setStagedFiles] = useState<{name: string, type: string, data: string, size: number}[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Online Presence
   const onlineUsers = usePresence(currentUserId);
@@ -431,8 +432,7 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
                                       <div key={idx} className="relative overflow-hidden rounded-xl border border-white/10 bg-black/20 p-1 shadow-md group">
                                         {att.type.startsWith('image/') ? (
                                           <img src={att.data} alt={att.name} className="h-32 w-auto max-w-[200px] object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform" onClick={() => {
-                                            const w = window.open();
-                                            if (w) w.document.write(`<img src="${att.data}" />`);
+                                            setSelectedImage(att.data);
                                           }} />
                                         ) : att.type === 'contact' ? (
                                           <div className="flex flex-col gap-1 px-3 py-2 bg-black/30 rounded-lg min-w-[150px]">
@@ -700,6 +700,36 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
         </div>
       )}
 
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 cursor-zoom-out"
+            onClick={() => setSelectedImage(null)}
+          >
+            <motion.img 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              src={selectedImage} 
+              alt="Fullscreen Preview" 
+              className="max-h-[90vh] max-w-[95vw] object-contain rounded-lg shadow-2xl cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button 
+              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors backdrop-blur-lg border border-white/10 shadow-lg cursor-pointer"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style dangerouslySetInnerHTML={{
         __html: `
