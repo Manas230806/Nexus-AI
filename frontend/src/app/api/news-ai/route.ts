@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         prompt = `Analyze this news article for potential bias or sensationalism. Identify any loaded language and state what a purely objective fact-check might look like.\n\nArticle: ${articleText}`;
         break;
       case 'translate':
-        prompt = `Translate the core summary of this article into Spanish, and provide a brief English explanation of the translation.\n\nArticle: ${articleText}`;
+        prompt = `Translate the core summary of this article into English (if it is in another language), and provide a clear, concise English summary.\n\nArticle: ${articleText}`;
         break;
       default:
         prompt = `Summarize the following article.\n\nArticle: ${articleText}`;
