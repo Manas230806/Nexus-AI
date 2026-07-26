@@ -14,7 +14,15 @@ export default function WorkspacePage() {
   const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,8 +93,43 @@ export default function WorkspacePage() {
   };
 
   return (
-    <Shell>
-      <NeuralNetworkBackground />
+    <>
+      <AnimatePresence>
+        {showIntro && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020617]"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-sky-900/20 via-[#020617] to-[#020617]" />
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              className="relative z-10 flex flex-col items-center justify-center text-center"
+            >
+              <motion.div
+                animate={{ 
+                  textShadow: ["0 0 20px rgba(56,189,248,0)", "0 0 40px rgba(56,189,248,0.8)", "0 0 20px rgba(56,189,248,0)"],
+                  opacity: [0.7, 1, 0.7]
+                }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="text-4xl md:text-6xl font-bold tracking-[0.2em] uppercase text-transparent bg-clip-text bg-gradient-to-b from-sky-300 to-sky-600 font-mono"
+              >
+                Welcome Boss
+              </motion.div>
+              <div className="mt-4 h-[1px] w-48 bg-gradient-to-r from-transparent via-sky-500 to-transparent opacity-50 animate-pulse" />
+              <div className="mt-2 text-sky-500/50 text-xs font-mono tracking-widest uppercase animate-pulse">
+                Initializing Nexus Core...
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Shell>
+        <NeuralNetworkBackground />
 
       <div className="relative z-10 p-6 lg:p-10 h-[calc(100vh-100px)] overflow-y-auto scrollbar-hide flex items-center justify-center">
         <motion.div 
@@ -166,6 +209,7 @@ export default function WorkspacePage() {
         </motion.button>
       </div>
       
-    </Shell>
+      </Shell>
+    </>
   );
 }
