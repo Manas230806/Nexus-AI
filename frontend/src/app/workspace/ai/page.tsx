@@ -99,49 +99,18 @@ export default function AIOxerviewPage() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_10%,transparent_100%)] pointer-events-none"></div>
 
-        {/* The Sentient Core (Background / Top Layer depending on state) */}
-        <motion.div 
-          initial={false}
-          animate={{ 
-            y: messages.length > 0 ? -150 : 0,
-            scale: messages.length > 0 ? 0.4 : 1,
-            opacity: messages.length > 0 ? 0.3 : 1
-          }}
-          transition={{ type: "spring", damping: 25, stiffness: 120 }}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0 flex flex-col items-center justify-center pointer-events-none"
-        >
-          <motion.div 
-            animate={{
-              rotate: isTyping ? 360 : 0,
-              scale: isTyping ? [1, 1.2, 1] : [1, 1.05, 1],
-            }}
-            transition={{
-              rotate: { duration: 4, repeat: Infinity, ease: "linear" },
-              scale: { duration: isTyping ? 1.5 : 5, repeat: Infinity, ease: "easeInOut" }
-            }}
-            className="relative flex h-48 w-48 sm:h-64 sm:w-64 items-center justify-center rounded-full bg-gradient-to-tr from-sky-400 via-indigo-500 to-purple-600 shadow-[0_0_120px_rgba(99,102,241,0.6)] blur-[2px]"
-          >
-            <div className="absolute inset-[3px] rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center overflow-hidden">
-               {/* Inner Core Rings */}
-               <motion.div 
-                 animate={{ rotate: -360 }} 
-                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                 className="absolute inset-0 border-[4px] border-dashed border-sky-400/30 rounded-full"
-               />
-               <Logo showText={false} size={80} className="opacity-90" />
-            </div>
-          </motion.div>
-
+        {/* Clean Centered Header */}
+        <div className="absolute top-0 left-0 right-0 z-0 flex flex-col items-center justify-start pt-16 sm:pt-24 pointer-events-none">
           <AnimatePresence>
             {messages.length === 0 && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="mt-8 sm:mt-16 text-center"
+                transition={{ delay: 0.1, duration: 0.4 }}
+                className="text-center w-full max-w-4xl mx-auto px-4"
               >
-                <h1 className="text-4xl sm:text-5xl font-light tracking-widest text-white/90 uppercase mb-4 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                <h1 className="text-4xl sm:text-6xl font-light tracking-widest text-white/90 uppercase mb-4 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                   Nexus <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-purple-500">Mind</span>
                 </h1>
                 <div className="flex items-center justify-center gap-3 text-sky-200/50 tracking-widest uppercase text-xs sm:text-sm">
@@ -152,14 +121,14 @@ export default function AIOxerviewPage() {
                   Awaiting neural link
                 </div>
                 
-                <div className="mt-8 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pointer-events-auto px-4">
+                <div className="mt-16 sm:mt-24 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pointer-events-auto max-w-2xl mx-auto">
                   {suggestedPrompts.map((prompt, i) => (
                     <motion.button
                       key={prompt}
                       whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(56,189,248,0.5)' }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleSubmit(undefined, prompt)}
-                      className="px-6 py-4 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md text-sm font-medium text-slate-300 text-left transition-colors shadow-lg"
+                      className="px-6 py-4 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md text-sm font-medium text-slate-300 text-left transition-colors shadow-lg hover:shadow-sky-500/10"
                     >
                       {prompt}
                     </motion.button>
@@ -168,7 +137,7 @@ export default function AIOxerviewPage() {
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* 3D Glassmorphic Messages Layer */}
         <div className="absolute inset-0 z-10 flex flex-col pb-[160px] sm:pb-[120px] pt-24 sm:pt-32 px-4 sm:px-8 overflow-y-auto scrollbar-hide" ref={scrollContainerRef}>
