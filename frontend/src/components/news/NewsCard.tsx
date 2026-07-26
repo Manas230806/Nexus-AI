@@ -75,13 +75,16 @@ export default function NewsCard({ article }: NewsCardProps) {
   };
 
   const handleVoice = () => {
-    if (!window.speechSynthesis) return alert('Your browser does not support text-to-speech.');
+    if (!window.speechSynthesis) {
+      alert('Your browser does not support text-to-speech.');
+      return;
+    }
     
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
     } else {
-      // Chrome bug workaround: cancel any stuck speech before starting
+      // Clear any stuck speech
       window.speechSynthesis.cancel();
       
       const textToSpeak = `${article.headline}. ${article.summary}`;
@@ -93,11 +96,9 @@ export default function NewsCard({ article }: NewsCardProps) {
         setIsSpeaking(false);
       };
       
-      // Attempt to set an English voice
-      const voices = window.speechSynthesis.getVoices();
-      const englishVoice = voices.find(v => v.lang.startsWith('en'));
-      if (englishVoice) utterance.voice = englishVoice;
-
+      // Let the browser automatically use the default OS voice.
+      // Fetching getVoices() synchronously on desktop Chrome often returns empty or breaks.
+      
       window.speechSynthesis.speak(utterance);
       setIsSpeaking(true);
     }
@@ -129,10 +130,10 @@ export default function NewsCard({ article }: NewsCardProps) {
   };
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-[32px] border border-[var(--border-color-strong)] bg-[var(--bg-main)] shadow-xl transition-all duration-300 hover:shadow-blue-500/10">
+    <div className="flex flex-col rounded-[32px] border border-[var(--border-color-strong)] bg-[var(--bg-main)] shadow-xl transition-all duration-300 hover:shadow-blue-500/10">
       
       {/* Image Section */}
-      <div className="relative h-64 sm:h-80 w-full overflow-hidden bg-slate-800">
+      <div className="relative h-64 sm:h-80 w-full overflow-hidden rounded-t-[32px] bg-slate-800">
         <img 
           src={article.imageUrl} 
           alt={article.headline}
