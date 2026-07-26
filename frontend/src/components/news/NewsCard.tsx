@@ -81,9 +81,23 @@ export default function NewsCard({ article }: NewsCardProps) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
     } else {
+      // Chrome bug workaround: cancel any stuck speech before starting
+      window.speechSynthesis.cancel();
+      
       const textToSpeak = `${article.headline}. ${article.summary}`;
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      
       utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = (e) => {
+        console.error('Speech synthesis error:', e);
+        setIsSpeaking(false);
+      };
+      
+      // Attempt to set an English voice
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(v => v.lang.startsWith('en'));
+      if (englishVoice) utterance.voice = englishVoice;
+
       window.speechSynthesis.speak(utterance);
       setIsSpeaking(true);
     }
