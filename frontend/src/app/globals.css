@@ -59,6 +59,15 @@ body {
   box-sizing: border-box;
 }
 
+a, button, [role="button"], [tabindex] {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+a *, button * {
+  cursor: pointer !important;
+}
+
 ::selection {
   background: rgba(56, 189, 248, 0.35);
   color: white;
