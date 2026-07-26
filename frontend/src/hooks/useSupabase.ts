@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { User, Session } from '@supabase/supabase-js';
 
+let cachedUser: User | null = null;
+let cachedUserProfile: any = null;
+
 export function useUser() {
-  const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(cachedUser);
+  const [userProfile, setUserProfile] = useState<any>(cachedUserProfile);
+  const [loading, setLoading] = useState(!cachedUserProfile);
 
   useEffect(() => {
     const fetchProfile = async (userId: string) => {
       const { data } = await supabase.from('users').select('*').eq('id', userId).single();
       if (data) {
+        cachedUserProfile = data;
         setUserProfile(data);
       }
       setLoading(false);
@@ -18,7 +22,8 @@ export function useUser() {
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      cachedUser = session?.user ?? null;
+      setUser(cachedUser);
       if (session?.user) {
         fetchProfile(session.user.id);
       } else {
@@ -28,10 +33,12 @@ export function useUser() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
-      setUser(session?.user ?? null);
+      cachedUser = session?.user ?? null;
+      setUser(cachedUser);
       if (session?.user) {
         fetchProfile(session.user.id);
       } else {
+        cachedUserProfile = null;
         setUserProfile(null);
       }
     });
@@ -39,7 +46,17 @@ export function useUser() {
     return () => subscription.unsubscribe();
   }, []);
 
-  return { user, userProfile, loading };
+  const updateProfile = async (updates: { name?: string, username?: string, avatar_url?: string }) => {
+    if (!user) return { error: 'Not logged in' };
+    const { data, error } = await supabase.from('users').update(updates).eq('id', user.id).select().single();
+    if (data) {
+      cachedUserProfile = data;
+      setUserProfile(data);
+    }
+    return { data, error };
+  };
+
+  return { user, userProfile, loading, updateProfile };
 }
 
 export function usePresence(userId: string | null) {

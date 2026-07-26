@@ -28,10 +28,33 @@ const topNavItems = [
 export default function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { userProfile } = useUser();
+  const { userProfile, updateProfile } = useUser();
   const { theme, toggleTheme } = useTheme();
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  const openProfileModal = () => {
+    if (userProfile) {
+      setEditName(userProfile.name || '');
+      setEditUsername(userProfile.username || '');
+      setEditAvatarUrl(userProfile.avatar_url || '');
+      setIsProfileModalOpen(true);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!updateProfile) return;
+    setProfileSaving(true);
+    await updateProfile({ name: editName, username: editUsername, avatar_url: editAvatarUrl });
+    setProfileSaving(false);
+    setIsProfileModalOpen(false);
+  };
   
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -126,7 +149,10 @@ export default function Shell({ children }: { children: ReactNode }) {
 
       {userProfile && (
         <div className="px-4 mb-6">
-          <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-3">
+          <div 
+            onClick={openProfileModal}
+            className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-3 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+          >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden">
               {(userProfile.avatar_url && userProfile.avatar_url.startsWith('http')) ? (
                 <img src={userProfile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
@@ -255,6 +281,65 @@ export default function Shell({ children }: { children: ReactNode }) {
       <main className="relative z-10 flex-1 overflow-y-auto pt-16 md:pt-0 flex flex-col">
         {children}
       </main>
+
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-6 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[var(--text-strong)]">Edit Profile</h2>
+              <button onClick={() => setIsProfileModalOpen(false)} className="rounded-lg p-2 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-strong)]">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-muted)]">Display Name</label>
+                <input 
+                  type="text" 
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-hover)] px-4 py-2.5 text-sm text-[var(--text-main)] outline-none focus:border-[rgb(var(--accent-main))]"
+                  required
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-muted)]">User ID (Username)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-2.5 text-[var(--text-muted)]">@</span>
+                  <input 
+                    type="text" 
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-hover)] pl-8 pr-4 py-2.5 text-sm text-[var(--text-main)] outline-none focus:border-[rgb(var(--accent-main))]"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-muted)]">Avatar URL (Optional)</label>
+                <input 
+                  type="url" 
+                  value={editAvatarUrl}
+                  onChange={(e) => setEditAvatarUrl(e.target.value)}
+                  placeholder="https://example.com/avatar.png"
+                  className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-hover)] px-4 py-2.5 text-sm text-[var(--text-main)] outline-none focus:border-[rgb(var(--accent-main))]"
+                />
+                {editAvatarUrl && (
+                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-[var(--border-color)] p-2">
+                    <img src={editAvatarUrl} alt="Preview" className="h-10 w-10 rounded-full object-cover bg-black/20" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    <span className="text-xs text-[var(--text-muted)]">Preview</span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-6 flex justify-end">
+                <button type="submit" disabled={profileSaving} className="rounded-xl bg-[rgb(var(--accent-main))] px-6 py-2.5 text-sm font-semibold text-[var(--text-strong)] hover:opacity-90 disabled:opacity-50 transition-opacity">
+                  {profileSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* New Message Modal */}
       {isNewMessageOpen && (
