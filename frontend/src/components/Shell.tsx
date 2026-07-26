@@ -33,6 +33,7 @@ export default function Shell({ children }: { children: ReactNode }) {
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isDpPreviewOpen, setIsDpPreviewOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editUsername, setEditUsername] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
@@ -153,7 +154,10 @@ export default function Shell({ children }: { children: ReactNode }) {
             onClick={openProfileModal}
             className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-3 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden">
+            <div 
+              onClick={(e) => { e.stopPropagation(); setIsDpPreviewOpen(true); }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--accent-main))] text-sm font-bold text-[var(--text-strong)] shadow-sm overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+            >
               {(userProfile.avatar_url && userProfile.avatar_url.startsWith('http')) ? (
                 <img src={userProfile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
               ) : (
@@ -282,6 +286,30 @@ export default function Shell({ children }: { children: ReactNode }) {
         {children}
       </main>
 
+      {/* DP Full Screen Preview Modal */}
+      {isDpPreviewOpen && userProfile && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 cursor-pointer"
+          onClick={() => setIsDpPreviewOpen(false)}
+        >
+          <div className="relative max-w-sm w-full aspect-square md:max-w-md bg-[var(--bg-panel)] rounded-full overflow-hidden shadow-2xl cursor-default" onClick={(e) => e.stopPropagation()}>
+            <button 
+              onClick={() => setIsDpPreviewOpen(false)} 
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/80 transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            {(userProfile.avatar_url && userProfile.avatar_url.startsWith('http')) ? (
+              <img src={userProfile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center bg-[rgb(var(--accent-main))] text-[120px] font-bold text-white">
+                {(userProfile.name || 'U').charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-6 shadow-2xl">
@@ -314,22 +342,6 @@ export default function Shell({ children }: { children: ReactNode }) {
                     required
                   />
                 </div>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--text-muted)]">Avatar URL (Optional)</label>
-                <input 
-                  type="url" 
-                  value={editAvatarUrl}
-                  onChange={(e) => setEditAvatarUrl(e.target.value)}
-                  placeholder="https://example.com/avatar.png"
-                  className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-hover)] px-4 py-2.5 text-sm text-[var(--text-main)] outline-none focus:border-[rgb(var(--accent-main))]"
-                />
-                {editAvatarUrl && (
-                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-[var(--border-color)] p-2">
-                    <img src={editAvatarUrl} alt="Preview" className="h-10 w-10 rounded-full object-cover bg-black/20" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                    <span className="text-xs text-[var(--text-muted)]">Preview</span>
-                  </div>
-                )}
               </div>
               <div className="mt-6 flex justify-end">
                 <button type="submit" disabled={profileSaving} className="rounded-xl bg-[rgb(var(--accent-main))] px-6 py-2.5 text-sm font-semibold text-[var(--text-strong)] hover:opacity-90 disabled:opacity-50 transition-opacity">
