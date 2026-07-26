@@ -95,7 +95,7 @@ export default function NexusCore() {
       else if (id === 'chat') router.push('/workspace/dm');
       else if (id === 'memory') router.push('/workspace/memory');
       else if (id === 'quickread') router.push('/workspace/quickread');
-    }, 250);
+    }, 500);
   };
 
   return (
@@ -119,7 +119,7 @@ export default function NexusCore() {
                     : { opacity: 1, x, y, scale: 1 }
               }
               exit={{ opacity: 0, x: 0, y: 0, scale: 0 }}
-              transition={warpingTo ? { type: "spring", stiffness: 400, damping: 30 } : { type: "spring", stiffness: 300, damping: 25, delay: index * 0.04 }}
+              transition={warpingTo ? { duration: 0.6, ease: [0.22, 1, 0.36, 1] } : { type: "spring", stiffness: 300, damping: 25, delay: index * 0.04 }}
               className="absolute z-20 flex flex-col items-center cursor-pointer group will-change-transform"
               onClick={(e) => {
                 e.stopPropagation();
@@ -145,7 +145,7 @@ export default function NexusCore() {
           scale: coreState === 'idle' ? [1, 1.03, 1] :
             coreState === 'thinking' ? [1, 1.08, 1, 1.04, 1] : 1,
         }}
-        transition={warpingTo ? { type: "spring", stiffness: 400, damping: 30 } : {
+        transition={warpingTo ? { duration: 0.5, ease: [0.22, 1, 0.36, 1] } : {
           duration: coreState === 'idle' ? 4 : 2,
           repeat: Infinity,
           ease: "easeInOut"
