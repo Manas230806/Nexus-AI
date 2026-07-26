@@ -24,6 +24,7 @@ const modules = [
 
 export default function NexusCore() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [warpingTo, setWarpingTo] = useState<string | null>(null);
   const [coreState, setCoreState] = useState<'idle' | 'thinking' | 'voice' | 'automation' | 'meeting' | 'error'>('idle');
   const [thoughtIndex, setThoughtIndex] = useState(0);
   const [idleColorIndex, setIdleColorIndex] = useState(0);
@@ -76,27 +77,23 @@ export default function NexusCore() {
   };
 
   const handleModuleClick = (id: string) => {
-    if (id === 'public_chat') {
-      setCoreState('voice'); // Keep the blue glow for now
-      setTimeout(() => router.push('/workspace/chat'), 400);
-    }
-    else if (id === 'workspace') {
-      setCoreState('automation');
-      setTimeout(() => router.push('/workspace/files'), 400);
-    }
-    else if (id === 'meetings') {
-      setCoreState('meeting');
-      setTimeout(() => router.push('/workspace/calendar?tab=meetings'), 400);
-    }
-    else if (id === 'agents') {
-      setCoreState('thinking');
-      setTimeout(() => router.push('/workspace/ai'), 400);
-    }
-    else {
-      setCoreState('idle');
-      if (id === 'chat') router.push('/workspace/dm');
-      if (id === 'memory') router.push('/workspace/memory');
-    }
+    if (warpingTo) return; // Prevent multiple clicks
+    setWarpingTo(id);
+    
+    if (id === 'public_chat') setCoreState('voice');
+    else if (id === 'workspace') setCoreState('automation');
+    else if (id === 'meetings') setCoreState('meeting');
+    else if (id === 'agents') setCoreState('thinking');
+    else setCoreState('idle');
+
+    setTimeout(() => {
+      if (id === 'public_chat') router.push('/workspace/chat');
+      else if (id === 'workspace') router.push('/workspace/files');
+      else if (id === 'meetings') router.push('/workspace/calendar?tab=meetings');
+      else if (id === 'agents') router.push('/workspace/ai');
+      else if (id === 'chat') router.push('/workspace/dm');
+      else if (id === 'memory') router.push('/workspace/memory');
+    }, 550);
   };
 
   return (
@@ -112,9 +109,15 @@ export default function NexusCore() {
             <motion.div
               key={mod.id}
               initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
-              animate={{ opacity: 1, x, y, scale: 1 }}
+              animate={
+                warpingTo === mod.id 
+                  ? { opacity: 0, scale: 5, x: 0, y: 0, zIndex: 50 } 
+                  : warpingTo 
+                    ? { opacity: 0, scale: 0, x: 0, y: 0 } 
+                    : { opacity: 1, x, y, scale: 1 }
+              }
               exit={{ opacity: 0, x: 0, y: 0, scale: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20, delay: index * 0.05 }}
+              transition={warpingTo ? { duration: 0.5, ease: "easeInOut" } : { type: "spring", stiffness: 200, damping: 20, delay: index * 0.05 }}
               className="absolute z-20 flex flex-col items-center cursor-pointer group"
               onClick={(e) => {
                 e.stopPropagation();
@@ -136,11 +139,11 @@ export default function NexusCore() {
       <motion.div
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        animate={{
+        animate={warpingTo ? { scale: 0, opacity: 0 } : {
           scale: coreState === 'idle' ? [1, 1.03, 1] :
             coreState === 'thinking' ? [1, 1.08, 1, 1.04, 1] : 1,
         }}
-        transition={{
+        transition={warpingTo ? { duration: 0.4, ease: "easeInOut" } : {
           duration: coreState === 'idle' ? 4 : 2,
           repeat: Infinity,
           ease: "easeInOut"
