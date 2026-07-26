@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Mic, Video, Bot, Zap, Folder, BrainCircuit, Briefcase } from 'lucide-react';
+import { MessageSquare, Mic, Video, Bot, Zap, Folder, BrainCircuit, Briefcase, MessageSquareText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const thoughts = [
@@ -14,7 +14,7 @@ const thoughts = [
 
 const modules = [
   { id: 'chat', label: 'Chat', icon: MessageSquare, color: 'text-sky-400', bg: 'bg-sky-400/10' },
-  { id: 'voice', label: 'Voice', icon: Mic, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
+  { id: 'public_chat', label: 'Messages', icon: MessageSquareText, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
   { id: 'meetings', label: 'Meetings', icon: Video, color: 'text-green-400', bg: 'bg-green-400/10' },
   { id: 'agents', label: 'Agents', icon: Bot, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
   { id: 'workspace', label: 'Workspace', icon: Briefcase, color: 'text-orange-400', bg: 'bg-orange-400/10' },
@@ -76,7 +76,10 @@ export default function NexusCore() {
   };
 
   const handleModuleClick = (id: string) => {
-    if (id === 'voice') setCoreState('voice');
+    if (id === 'public_chat') {
+      setCoreState('voice'); // Keep the blue glow for now
+      setTimeout(() => router.push('/workspace/chat'), 400);
+    }
     else if (id === 'workspace') {
       setCoreState('automation');
       setTimeout(() => router.push('/workspace/files'), 400);
