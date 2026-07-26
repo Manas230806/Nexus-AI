@@ -94,6 +94,8 @@ export default function CalendarPage() {
     } else {
       alert("Your browser does not support notifications.");
     }
+  };
+
   const handleDeleteEvent = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this?')) {
