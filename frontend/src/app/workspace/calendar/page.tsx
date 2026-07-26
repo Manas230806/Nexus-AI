@@ -94,11 +94,16 @@ export default function CalendarPage() {
     } else {
       alert("Your browser does not support notifications.");
     }
+  const handleDeleteEvent = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this?')) {
+      setEvents(events.filter(ev => ev.id !== id));
+    }
   };
 
   return (
     <Shell>
-      <div className="flex min-h-full w-full flex-col space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col space-y-6 p-4 sm:p-6 lg:p-8">
         
         {/* Header Tabs */}
         <div className="flex gap-6 border-b border-[var(--border-color-strong)]">
@@ -234,7 +239,7 @@ export default function CalendarPage() {
 
         {/* Views */}
         {activeTab === 'calendar' ? (
-          <div className="flex-1 rounded-[28px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)]/40 p-6 shadow-xl backdrop-blur-xl flex flex-col min-h-[500px]">
+          <div className="flex flex-col rounded-[28px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)]/40 p-6 shadow-xl backdrop-blur-xl">
             
             <div className="grid grid-cols-7 gap-4 mb-4 text-center">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -242,7 +247,7 @@ export default function CalendarPage() {
               ))}
             </div>
 
-            <div className="grid flex-1 grid-cols-7 gap-px rounded-2xl overflow-hidden bg-[var(--bg-hover)] border border-[var(--border-color-strong)]">
+            <div className="grid grid-cols-7 gap-px rounded-2xl overflow-hidden bg-[var(--bg-hover)] border border-[var(--border-color-strong)]">
               {Array.from({ length: startingDayOfWeek }).map((_, i) => (
                 <div key={`empty-${i}`} className="bg-[var(--bg-panel)]/50 min-h-[100px]" />
               ))}
@@ -271,11 +276,19 @@ export default function CalendarPage() {
                         <motion.div 
                           key={event.id}
                           layoutId={`event-${event.id}`}
-                          className={`truncate rounded px-1.5 py-1 text-[10px] font-medium text-white shadow-sm flex items-center gap-1 ${event.color}`}
+                          className={`truncate rounded px-1.5 py-1 text-[10px] font-medium text-white shadow-sm flex items-center justify-between gap-1 ${event.color} relative group/event`}
                           title={`${event.title} at ${event.time}`}
                         >
-                          {event.isMeeting && <Users className="w-2.5 h-2.5 inline" />}
-                          {event.time} - {event.title}
+                          <div className="flex items-center gap-1 truncate">
+                            {event.isMeeting && <Users className="w-2.5 h-2.5 inline shrink-0" />}
+                            <span className="truncate">{event.time} - {event.title}</span>
+                          </div>
+                          <button 
+                            onClick={(e) => handleDeleteEvent(e, event.id)}
+                            className="hidden group-hover/event:flex items-center justify-center shrink-0 w-4 h-4 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors"
+                          >
+                            ×
+                          </button>
                         </motion.div>
                       ))}
                     </div>
@@ -285,7 +298,7 @@ export default function CalendarPage() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 rounded-[28px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)]/40 p-6 shadow-xl backdrop-blur-xl">
+          <div className="flex flex-col rounded-[28px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)]/40 p-6 shadow-xl backdrop-blur-xl">
              <div className="max-w-4xl mx-auto space-y-4">
                {events.filter(e => e.isMeeting).length === 0 && (
                  <div className="text-center py-20">
@@ -317,13 +330,22 @@ export default function CalendarPage() {
                       </div>
                    </div>
                    
-                   <button 
-                     onClick={() => handleSetReminder(meeting.id)}
-                     disabled={meeting.reminderSet}
-                     className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 justify-center shrink-0 ${meeting.reminderSet ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-[var(--bg-hover-strong)] text-[var(--text-strong)] hover:bg-[var(--bg-hover)]'}`}
-                   >
-                     {meeting.reminderSet ? 'Reminder Set ✓' : 'Set Reminder'}
-                   </button>
+                   <div className="flex items-center gap-2">
+                     <button 
+                       onClick={() => handleSetReminder(meeting.id)}
+                       disabled={meeting.reminderSet}
+                       className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 justify-center shrink-0 ${meeting.reminderSet ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-[var(--bg-hover-strong)] text-[var(--text-strong)] hover:bg-[var(--bg-hover)]'}`}
+                     >
+                       {meeting.reminderSet ? 'Reminder Set ✓' : 'Set Reminder'}
+                     </button>
+                     <button 
+                       onClick={(e) => handleDeleteEvent(e, meeting.id)}
+                       className="p-2.5 rounded-xl text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-400/10 transition flex items-center justify-center shrink-0"
+                       title="Delete Meeting"
+                     >
+                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                     </button>
+                   </div>
                  </motion.div>
                ))}
              </div>
