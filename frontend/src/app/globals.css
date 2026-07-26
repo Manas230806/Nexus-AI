@@ -68,6 +68,12 @@ a *, button * {
   cursor: pointer !important;
 }
 
+*, ::before, ::after, *:focus, *:focus-visible {
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
 ::selection {
   background: rgba(56, 189, 248, 0.35);
   color: white;
