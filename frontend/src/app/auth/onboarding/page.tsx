@@ -27,7 +27,7 @@ export default function OnboardingPage() {
         .single();
         
       if (userProfile?.username) {
-        router.push('/workspace/chat');
+        router.push('/workspace');
       } else {
         setCheckingSession(false);
       }
@@ -95,7 +95,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    router.push('/workspace/chat');
+    router.push('/workspace');
   };
 
   if (checkingSession || !userAuth) {

@@ -68,8 +68,8 @@ export default function RegisterPage() {
       }
     }
 
-    // Direct them to chat
-    router.push('/workspace/chat');
+    // Direct them to dashboard
+    router.push('/workspace');
   };
 
   const handleGoogleLogin = async () => {
