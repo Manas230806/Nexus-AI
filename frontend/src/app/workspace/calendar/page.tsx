@@ -68,19 +68,6 @@ export default function CalendarPage() {
       reminderSet: false
     }]);
     
-    // Generate Google Calendar Link
-    const year = currentYear;
-    const monthStr = (currentMonth + 1).toString().padStart(2, '0');
-    const dayStr = selectedDate.toString().padStart(2, '0');
-    const [hours, minutes] = selectedTime.split(':');
-    
-    const endHours = (parseInt(hours) + 1).toString().padStart(2, '0');
-    const startTimeStr = `${year}${monthStr}${dayStr}T${hours}${minutes}00Z`;
-    const endTimeStr = `${year}${monthStr}${dayStr}T${endHours}${minutes}00Z`;
-    
-    const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(newEventTitle)}&dates=${startTimeStr}/${endTimeStr}`;
-    window.open(googleCalendarUrl, '_blank');
-
     setNewEventTitle('');
     setIsAdding(false);
     setSelectedDate(null);
