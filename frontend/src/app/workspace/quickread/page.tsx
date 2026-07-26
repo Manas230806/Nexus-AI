@@ -75,7 +75,7 @@ export default function QuickReadPage() {
             </div>
           </div>
           
-          <CategoryBar activeCategory={activeCategory} onSelect={setActiveCategory} />
+          <CategoryBar activeCategory={activeCategory} onSelect={(cat) => setActiveCategory(cat)} />
         </div>
 
         {/* News Feed Container */}
