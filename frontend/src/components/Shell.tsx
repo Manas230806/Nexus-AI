@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import Logo from './Logo';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const topNavItems = [
   { href: '/workspace', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -287,28 +288,40 @@ export default function Shell({ children }: { children: ReactNode }) {
       </main>
 
       {/* DP Full Screen Preview Modal */}
-      {isDpPreviewOpen && userProfile && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 cursor-pointer"
-          onClick={() => setIsDpPreviewOpen(false)}
-        >
-          <div className="relative max-w-sm w-full aspect-square md:max-w-md bg-[var(--bg-panel)] rounded-full overflow-hidden shadow-2xl cursor-default" onClick={(e) => e.stopPropagation()}>
-            <button 
-              onClick={() => setIsDpPreviewOpen(false)} 
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/80 transition-colors"
+      <AnimatePresence>
+        {isDpPreviewOpen && userProfile && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 cursor-pointer"
+            onClick={() => setIsDpPreviewOpen(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative max-w-sm w-full aspect-square md:max-w-md bg-[var(--bg-panel)] rounded-full overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] cursor-default" 
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="h-6 w-6" />
-            </button>
-            {(userProfile.avatar_url && userProfile.avatar_url.startsWith('http')) ? (
-              <img src={userProfile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center bg-[rgb(var(--accent-main))] text-[120px] font-bold text-white">
-                {(userProfile.name || 'U').charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              <button 
+                onClick={() => setIsDpPreviewOpen(false)} 
+                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/80 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+              {(userProfile.avatar_url && userProfile.avatar_url.startsWith('http')) ? (
+                <img src={userProfile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center bg-[rgb(var(--accent-main))] text-[120px] font-bold text-white">
+                  {(userProfile.name || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
