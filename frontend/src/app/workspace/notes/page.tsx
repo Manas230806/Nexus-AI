@@ -117,7 +117,7 @@ export default function NotesPage() {
   }, [todos]);
 
   const filteredNotes = notes
-    .filter(n => n.title !== '__SYSTEM_DAILY_TODO__')
+    .filter(n => n.title !== '__SYSTEM_DAILY_TODO__' && n.title !== '__SYSTEM_MEMORY_VAULT__')
     .filter(n => 
       n.title.toLowerCase().includes(search.toLowerCase()) || 
       (n.preview && n.preview.toLowerCase().includes(search.toLowerCase())) ||
