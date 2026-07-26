@@ -151,10 +151,10 @@ export default function Shell({ children }: { children: ReactNode }) {
               key={item.href}
               href={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+              className={`group flex items-center justify-between outline-none focus:outline-none select-none cursor-pointer rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 active 
                   ? 'bg-[var(--bg-active)] text-[var(--text-strong)] border border-[var(--border-active)] shadow-sm' 
-                  : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]'
+                  : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] border border-transparent'
               }`}
             >
               <div className="flex items-center gap-3">
