@@ -1,21 +1,20 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 export async function POST(request: Request) {
   try {
     const { articleText, actionType } = await request.json();
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ error: 'Gemini API key not configured.' }, { status: 500 });
+      return NextResponse.json({ error: 'Groq API key not configured.' }, { status: 500 });
     }
     
     if (!articleText || !actionType) {
       return NextResponse.json({ error: 'Missing articleText or actionType.' }, { status: 400 });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const groq = new Groq({ apiKey });
 
     let prompt = '';
 
@@ -36,9 +35,12 @@ export async function POST(request: Request) {
         prompt = `Summarize the following article.\n\nArticle: ${articleText}`;
     }
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama-3.1-8b-instant',
+    });
+
+    const text = completion.choices[0]?.message?.content || '';
 
     return NextResponse.json({ text });
   } catch (error: any) {
