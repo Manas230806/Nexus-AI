@@ -759,17 +759,23 @@ export function useCalendarEvents(userId: string | undefined) {
       user_id: userId
     }).select().single();
     
-    if (error) console.error('Error creating event:', error);
+    if (error) {
+      console.error('Error creating event:', error);
+    } else if (data) {
+      setEvents((prev) => [...prev, data as CalendarEvent]);
+    }
     return { data, error };
   };
 
   const updateEvent = async (id: string, updates: Partial<CalendarEvent>) => {
+    setEvents((prev) => prev.map(ev => ev.id === id ? { ...ev, ...updates } : ev));
     const { data, error } = await supabase.from('calendar_events').update(updates).eq('id', id).select().single();
     if (error) console.error('Error updating event:', error);
     return { data, error };
   };
 
   const deleteEvent = async (id: string) => {
+    setEvents((prev) => prev.filter(ev => ev.id !== id));
     const { error } = await supabase.from('calendar_events').delete().eq('id', id);
     if (error) console.error('Error deleting event:', error);
     return { error };
