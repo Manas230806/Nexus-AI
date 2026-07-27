@@ -190,6 +190,19 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     return pc;
   };
 
+  const processIceCandidatesQueue = async (pc: RTCPeerConnection) => {
+    while (iceCandidatesQueueRef.current.length > 0) {
+      const candidate = iceCandidatesQueueRef.current.shift();
+      if (candidate) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.warn("Error adding queued ICE candidate", e);
+        }
+      }
+    }
+  };
+
   useEffect(() => {
     let signalingChannel: any = null;
 
