@@ -158,11 +158,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         const newPeer = new PeerClass(myId, {
            config: {
               iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:global.stun.twilio.com:3478' },
-                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+                { urls: 'stun:stun.l.google.com:19302', url: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:global.stun.twilio.com:3478', url: 'stun:global.stun.twilio.com:3478' },
+                { urls: 'turn:openrelay.metered.ca:80', url: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443', url: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', url: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
               ]
            }
         });
@@ -269,6 +269,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
       setLocalStream(stream);
 
+      // Register stream event listener in answerCall explicitly to avoid missing it
+      incomingCall.on('stream', (rStream: any) => {
+        console.log('Received remote stream in answerCall callback');
+        setRemoteStream(rStream);
+      });
       incomingCall.on('close', forceCleanup);
       incomingCall.on('error', forceCleanup);
       incomingCall.answer(stream);
@@ -338,10 +343,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       
       {/* ALWAYS render a hidden audio for remote stream - this guarantees voice works for ALL call types */}
       {localStream && (
-         <audio muted autoPlay ref={(el) => { if (el && el.srcObject !== localStream) { el.srcObject = localStream; el.play().catch(() => {}); }}} className="hidden" />
+         <audio muted autoPlay ref={(el) => { if (el && el.srcObject !== localStream) { el.srcObject = localStream; el.play().catch(() => {}); }}} className="absolute w-0 h-0 opacity-0 pointer-events-none" />
       )}
       {remoteStream && (
-         <audio autoPlay muted={isSpeakerOff} ref={(el) => { if (el && el.srcObject !== remoteStream) { el.srcObject = remoteStream; el.play().catch(() => {}); }}} className="hidden" />
+         <audio autoPlay muted={isSpeakerOff} ref={(el) => { if (el && el.srcObject !== remoteStream) { el.srcObject = remoteStream; el.play().catch(() => {}); }}} className="absolute w-0 h-0 opacity-0 pointer-events-none" />
       )}
 
       {/* ─── INCOMING CALL (Instagram-style fullscreen) ─── */}
