@@ -131,6 +131,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const ringtoneRef = useRef<ReturnType<typeof createRingtone> | null>(null);
   const dialToneRef = useRef<ReturnType<typeof createDialTone> | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const signalingChannelRef = useRef<any>(null);
 
   const isConnected = !!(activeCall && remoteStream);
   const timer = useCallTimer(isConnected);
@@ -146,11 +147,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   };
 
   const sendSignalingMessage = async (targetId: string, event: string, payload: any) => {
-     await supabase.channel(`call_signaling_${targetId}`).send({
-        type: 'broadcast',
-        event,
-        payload
-     });
+     if (signalingChannelRef.current && currentUserId) {
+       await signalingChannelRef.current.send({
+          type: 'broadcast',
+          event,
+          payload: { ...payload, targetId, senderId: currentUserId }
+       });
+     }
   };
 
   const createPeerConnection = (targetId: string, stream: MediaStream) => {
@@ -159,7 +162,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
       ]
     });
 
@@ -175,7 +181,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     pc.onicecandidate = (event) => {
       if (event.candidate && currentUserId) {
-        sendSignalingMessage(targetId, 'ICE_CANDIDATE', { candidate: event.candidate, senderId: currentUserId });
+        sendSignalingMessage(targetId, 'ICE_CANDIDATE', { candidate: event.candidate });
       }
     };
 
@@ -195,8 +201,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const { data: myData } = await supabase.from('users').select('name').eq('id', myId).single();
       setCurrentUserName(myData?.name || 'Boss');
 
-      signalingChannel = supabase.channel(`call_signaling_${myId}`)
+      signalingChannel = supabase.channel('global_workspace_calls')
         .on('broadcast', { event: 'OFFER' }, async ({ payload }) => {
+           if (payload.targetId !== myId) return;
            setRemoteUser({ id: payload.callerId, name: payload.callerName });
            setCallType(payload.type);
            setPendingOffer(payload.offer);
@@ -206,15 +213,22 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
            ringtoneRef.current.start();
         })
         .on('broadcast', { event: 'ANSWER' }, async ({ payload }) => {
+           if (payload.targetId !== myId) return;
            if (pcRef.current) await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
         })
         .on('broadcast', { event: 'ICE_CANDIDATE' }, async ({ payload }) => {
+           if (payload.targetId !== myId) return;
            if (pcRef.current && payload.candidate) {
               try { await pcRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate)); } catch (e) {}
            }
         })
-        .on('broadcast', { event: 'CALL_END' }, () => { forceCleanup(); })
+        .on('broadcast', { event: 'CALL_END' }, ({ payload }) => {
+           if (payload.targetId !== myId && payload.senderId !== myId) return;
+           forceCleanup();
+        })
         .subscribe();
+
+      signalingChannelRef.current = signalingChannel;
     };
 
     initSignaling();
