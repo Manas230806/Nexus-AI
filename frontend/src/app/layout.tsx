@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { ThemeProvider } from '../components/ThemeProvider';
+import { CallProvider } from '../contexts/CallContext';
 
 export const metadata: Metadata = {
   title: 'Nexus AI',
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <ThemeProvider>
-          {children}
+          <CallProvider>
+            {children}
+          </CallProvider>
         </ThemeProvider>
       </body>
     </html>

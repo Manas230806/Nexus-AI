@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Paperclip, Smile, Mic, MoreVertical, Phone, Video, Search, UserPlus, Hash, FileText, Pin, Plus, MessageSquareText, Image as ImageIcon, Calendar, Edit2, Forward, X, Camera, Trash2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { useMessages, usePresence } from '../hooks/useSupabase';
+import { useCall } from '../contexts/CallContext';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_AVATARS } from '../lib/constants';
@@ -47,98 +48,7 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
   const docInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Voice Calling states
-  const [peer, setPeer] = useState<any>(null);
-  const [incomingCall, setIncomingCall] = useState<any>(null);
-  const [activeCall, setActiveCall] = useState<any>(null);
-  const [isCalling, setIsCalling] = useState(false);
-  const localAudioRef = useRef<HTMLAudioElement>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement>(null);
-
-  useEffect(() => {
-    if (!currentUserId) return;
-    
-    let currentPeer: any = null;
-    import('peerjs').then(({ default: PeerClass }) => {
-      currentPeer = new PeerClass(currentUserId);
-      
-      currentPeer.on('call', (call: any) => {
-        setIncomingCall(call);
-      });
-
-      setPeer(currentPeer);
-    }).catch(err => console.error("PeerJS import error", err));
-
-    return () => {
-      if (currentPeer) currentPeer.destroy();
-    };
-  }, [currentUserId]);
-
-  const handleStartCall = async () => {
-    if (!peer || !otherUser?.id || isPublicRoom || otherUser?.isGroup) {
-       alert("Voice calling is only available in 1-on-1 direct messages.");
-       return;
-    }
-    try {
-      setIsCalling(true);
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      if (localAudioRef.current) localAudioRef.current.srcObject = stream;
-      
-      const call = peer.call(otherUser.id, stream);
-      
-      call.on('stream', (remoteStream: any) => {
-        if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
-      });
-
-      call.on('close', () => endCall());
-      setActiveCall(call);
-    } catch (err) {
-      console.error("Failed to get local stream", err);
-      setIsCalling(false);
-    }
-  };
-
-  const handleAnswerCall = async () => {
-    if (!incomingCall) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      if (localAudioRef.current) localAudioRef.current.srcObject = stream;
-
-      incomingCall.answer(stream);
-      
-      incomingCall.on('stream', (remoteStream: any) => {
-        if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
-      });
-
-      incomingCall.on('close', () => endCall());
-      setActiveCall(incomingCall);
-      setIncomingCall(null);
-    } catch(err) {
-       console.error("Failed to answer", err);
-    }
-  };
-
-  const handleRejectCall = () => {
-    if (incomingCall) {
-       incomingCall.close();
-       setIncomingCall(null);
-    }
-  };
-
-  const endCall = () => {
-    if (activeCall) {
-      activeCall.close();
-      setActiveCall(null);
-    }
-    setIsCalling(false);
-    
-    if (localAudioRef.current?.srcObject) {
-      const tracks = (localAudioRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-    }
-  };
-
-  // Online Presence
+  const { startCall, isCalling, activeCall } = useCall();
   const onlineUsers = usePresence(currentUserId);
 
   // Deleted For Me
@@ -357,6 +267,14 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
     setForwarding(false);
   };
 
+  const initiateCall = (type: 'audio' | 'video') => {
+    if (!otherUser?.id || isPublicRoom || otherUser?.isGroup) {
+      alert("Calling is only available in 1-on-1 direct messages.");
+      return;
+    }
+    startCall(otherUser.id, otherUser.name, type);
+  };
+
   if (!roomId) {
     return (
       <div className="flex h-full items-center justify-center rounded-[24px] border border-[var(--border-color-strong)] bg-[var(--bg-hover)] p-6 text-[var(--text-main)] w-full">
@@ -438,10 +356,10 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
               </div>
             </div>
             <div className="flex items-center gap-0.5 sm:gap-2">
-              <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors" title="Start Google Meet">
+              <button onClick={() => initiateCall('video')} className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isCalling || activeCall ? 'bg-emerald-500/20 text-emerald-500' : 'hover:bg-[var(--bg-hover)] text-[var(--text-muted)]'}`} title="Video Call">
                 <Video className="h-5 w-5" />
-              </a>
-              <button onClick={handleStartCall} className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isCalling || activeCall ? 'bg-emerald-500/20 text-emerald-500' : 'hover:bg-[var(--bg-hover)] text-[var(--text-muted)]'}`} title="Voice Call">
+              </button>
+              <button onClick={() => initiateCall('audio')} className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isCalling || activeCall ? 'bg-emerald-500/20 text-emerald-500' : 'hover:bg-[var(--bg-hover)] text-[var(--text-muted)]'}`} title="Voice Call">
                 <Phone className="h-4 w-4" />
               </button>
               <button 
@@ -869,62 +787,6 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
           </div>
         </div>
       )}
-
-      {/* Incoming Call Modal */}
-      {incomingCall && !activeCall && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-           <div className="w-full max-w-sm rounded-3xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-6 shadow-2xl flex flex-col items-center text-center">
-              <div className="h-20 w-20 rounded-full bg-[var(--bg-hover)] flex items-center justify-center mb-4 border border-[var(--border-color)] relative">
-                 <Phone className="h-10 w-10 text-emerald-500 animate-pulse relative z-10" />
-                 <div className="absolute inset-0 rounded-full border border-emerald-500 animate-ping opacity-50"></div>
-              </div>
-              <h3 className="text-xl font-bold text-[var(--text-strong)] mb-2">Incoming Call</h3>
-              <p className="text-[var(--text-muted)] mb-8">From {otherUser?.name || 'Unknown'}</p>
-              
-              <div className="flex w-full gap-4">
-                <button 
-                  onClick={handleRejectCall}
-                  className="flex-1 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 font-bold py-3 transition-colors"
-                >
-                  Decline
-                </button>
-                <button 
-                  onClick={handleAnswerCall}
-                  className="flex-1 rounded-xl bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 font-bold py-3 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Phone className="h-5 w-5" /> Answer
-                </button>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* Active Call Overlay */}
-      {(isCalling || activeCall) && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[50] flex items-center gap-4 rounded-full border border-[var(--border-color-strong)] bg-[var(--bg-panel)]/95 px-6 py-3 shadow-xl backdrop-blur-md animate-fade-up min-w-[250px]">
-           <div className="flex items-center gap-3 w-full">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500 shrink-0">
-                <Phone className="h-4 w-4" />
-                <div className="absolute inset-0 rounded-full border-2 border-emerald-500 animate-ping opacity-30"></div>
-              </div>
-              <div className="flex flex-col flex-1">
-                 <span className="text-sm font-bold text-[var(--text-strong)] truncate max-w-[120px]">{otherUser?.name || 'Unknown'}</span>
-                 <span className="text-xs text-[var(--text-muted)]">{activeCall ? 'Connected (Voice Only)' : 'Calling...'}</span>
-              </div>
-              
-              <button 
-                onClick={endCall}
-                className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg"
-              >
-                <Phone className="h-4 w-4 rotate-[135deg]" />
-              </button>
-           </div>
-           
-           <audio ref={localAudioRef} muted autoPlay className="hidden" />
-           <audio ref={remoteAudioRef} autoPlay className="hidden" />
-        </div>
-      )}
-
 
       {/* Lightbox */}
       <AnimatePresence>
