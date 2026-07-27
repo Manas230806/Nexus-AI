@@ -35,6 +35,10 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
   const [forwardError, setForwardError] = useState('');
   const [forwarding, setForwarding] = useState(false);
 
+  // Chat Search
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+
   // Voice & File Staging states
   const [isRecording, setIsRecording] = useState(false);
   const [showUPinMenu, setShowUPinMenu] = useState(false);
@@ -270,6 +274,23 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
     );
   }
 
+  const filteredMessages = messages.filter((msg: any) => {
+    if (deletedForMe.includes(msg.id)) return false;
+    if (!chatSearchQuery.trim()) return true;
+    
+    let textToSearch = msg.content;
+    if (textToSearch === '[This message was deleted]') return false;
+    
+    try {
+      if (textToSearch.startsWith('{') && textToSearch.includes('"attachments"')) {
+        const parsed = JSON.parse(textToSearch);
+        textToSearch = parsed.text || '';
+      }
+    } catch(e) {}
+    
+    return textToSearch.toLowerCase().includes(chatSearchQuery.toLowerCase());
+  });
+
   return (
     <>
       <div className="flex h-full w-full overflow-hidden md:rounded-2xl lg:rounded-[32px] md:border border-[var(--border-color)] md:shadow-2xl bg-[var(--bg-main)] whatsapp-bg animate-slide-in-right">
@@ -329,11 +350,51 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
               <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors" title="Start Google Meet">
                 <Video className="h-5 w-5" />
               </a>
-              <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><Phone className="h-4 w-4" /></button>
-              <button className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><Search className="h-5 w-5" /></button>
+              <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors" title="Voice Call (Coming Soon)"><Phone className="h-4 w-4" /></button>
+              <button 
+                onClick={() => { setIsSearchOpen(!isSearchOpen); if (isSearchOpen) setChatSearchQuery(''); }}
+                className={`hidden sm:flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isSearchOpen ? 'bg-sky-500/20 text-sky-400' : 'hover:bg-[var(--bg-hover)] text-[var(--text-muted)]'}`}
+                title="Search Messages"
+              >
+                <Search className="h-5 w-5" />
+              </button>
               <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"><MoreVertical className="h-5 w-5" /></button>
             </div>
           </div>
+
+          {/* Search Bar Expansion */}
+          <AnimatePresence>
+            {isSearchOpen && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="border-b border-[var(--border-color)] bg-[var(--bg-panel)] overflow-hidden z-10"
+              >
+                <div className="p-3 px-6">
+                  <div className="relative flex items-center">
+                    <Search className="absolute left-3 text-[var(--text-muted)] h-4 w-4" />
+                    <input 
+                      autoFocus
+                      type="text" 
+                      placeholder="Search in this conversation..." 
+                      value={chatSearchQuery}
+                      onChange={(e) => setChatSearchQuery(e.target.value)}
+                      className="w-full bg-[var(--bg-hover)] rounded-xl py-2.5 pl-9 pr-10 text-sm text-[var(--text-strong)] outline-none focus:ring-1 focus:ring-sky-500/50 placeholder:text-[var(--text-muted)]"
+                    />
+                    {chatSearchQuery && (
+                      <button 
+                        onClick={() => setChatSearchQuery('')}
+                        className="absolute right-3 text-[var(--text-muted)] hover:text-[var(--text-strong)] p-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-6 scroll-smooth scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -355,13 +416,18 @@ export default function ChatArea({ roomId, onBack, onAvatarChange }: ChatAreaPro
             </div>
 
             <div className="flex flex-col gap-6 max-w-3xl mx-auto">
-              {messages.length === 0 && (
+              {filteredMessages.length === 0 && !chatSearchQuery && (
                 <div className="text-center text-[var(--text-muted)] text-sm py-10">
                   No messages yet. Send a message to start the conversation!
                 </div>
               )}
+              {filteredMessages.length === 0 && chatSearchQuery && (
+                <div className="text-center text-[var(--text-muted)] text-sm py-10">
+                  No messages match your search.
+                </div>
+              )}
 
-              {messages.filter((msg: any) => !deletedForMe.includes(msg.id)).map((msg: any) => {
+              {filteredMessages.map((msg: any) => {
                 const isMe = msg.sender_id === currentUserId;
                 const date = new Date(msg.created_at);
                 const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
