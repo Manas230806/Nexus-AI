@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Phone, Video, X, Mic, MicOff, Volume2, VolumeX, Camera, CameraOff } from 'lucide-react';
+import { Phone, Video, Mic, MicOff, Volume2, VolumeX, CameraOff, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type CallType = 'audio' | 'video';
@@ -16,6 +16,100 @@ interface CallContextType {
 
 const CallContext = createContext<CallContextType | undefined>(undefined);
 
+// ─── Ringtone Generator (Web Audio) ───────────────────────────────
+function createRingtone(): { start: () => void; stop: () => void } {
+  let ctx: AudioContext | null = null;
+  let osc1: OscillatorNode | null = null;
+  let osc2: OscillatorNode | null = null;
+  let gain: GainNode | null = null;
+  let interval: any = null;
+
+  return {
+    start() {
+      try {
+        ctx = new AudioContext();
+        gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gain.gain.value = 0;
+
+        osc1 = ctx.createOscillator();
+        osc2 = ctx.createOscillator();
+        osc1.frequency.value = 440;
+        osc2.frequency.value = 480;
+        osc1.connect(gain);
+        osc2.connect(gain);
+        osc1.start();
+        osc2.start();
+
+        let on = true;
+        interval = setInterval(() => {
+          if (gain) gain.gain.value = on ? 0.15 : 0;
+          on = !on;
+        }, 1000);
+      } catch (e) { console.warn('Ringtone error', e); }
+    },
+    stop() {
+      if (interval) clearInterval(interval);
+      if (osc1) try { osc1.stop(); } catch(e) {}
+      if (osc2) try { osc2.stop(); } catch(e) {}
+      if (ctx) try { ctx.close(); } catch(e) {}
+      osc1 = null; osc2 = null; gain = null; ctx = null; interval = null;
+    }
+  };
+}
+
+function createDialTone(): { start: () => void; stop: () => void } {
+  let ctx: AudioContext | null = null;
+  let osc: OscillatorNode | null = null;
+  let gain: GainNode | null = null;
+  let interval: any = null;
+
+  return {
+    start() {
+      try {
+        ctx = new AudioContext();
+        gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gain.gain.value = 0;
+
+        osc = ctx.createOscillator();
+        osc.frequency.value = 400;
+        osc.type = 'sine';
+        osc.connect(gain);
+        osc.start();
+
+        let on = true;
+        // Ring pattern: 2s on, 4s off
+        gain.gain.value = 0.08;
+        interval = setInterval(() => {
+          if (gain) gain.gain.value = on ? 0 : 0.08;
+          on = !on;
+        }, 3000);
+      } catch (e) { console.warn('Dial tone error', e); }
+    },
+    stop() {
+      if (interval) clearInterval(interval);
+      if (osc) try { osc.stop(); } catch(e) {}
+      if (ctx) try { ctx.close(); } catch(e) {}
+      osc = null; gain = null; ctx = null; interval = null;
+    }
+  };
+}
+
+// ─── Call Timer ────────────────────────────────────────────────────
+function useCallTimer(isActive: boolean) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (!isActive) { setSeconds(0); return; }
+    const id = setInterval(() => setSeconds(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [isActive]);
+  const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const secs = (seconds % 60).toString().padStart(2, '0');
+  return `${mins}:${secs}`;
+}
+
+// ─── Provider ──────────────────────────────────────────────────────
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const [peer, setPeer] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -27,15 +121,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   
   const [remoteUser, setRemoteUser] = useState<{ id: string; name: string } | null>(null);
 
-  // New State-based stream handling
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
-  // Toggles
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  const [isSpeakerOff, setIsSpeakerOff] = useState(false); // Basically muting incoming audio
+  const [isSpeakerOff, setIsSpeakerOff] = useState(false);
 
+  const ringtoneRef = useRef<ReturnType<typeof createRingtone> | null>(null);
+  const dialToneRef = useRef<ReturnType<typeof createDialTone> | null>(null);
+
+  const isConnected = !!(activeCall && remoteStream);
+  const timer = useCallTimer(isConnected);
+
+  // ─── Init PeerJS + Supabase Signaling ────────────────────────
   useEffect(() => {
     let callChannel: any = null;
 
@@ -45,12 +144,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const myId = session.user.id;
       setCurrentUserId(myId);
 
-      // Supabase Signaling Channel for robust hangups
       callChannel = supabase.channel(`call_signals_${myId}`)
-        .on('broadcast', { event: 'CALL_END' }, () => {
-           console.log("Received CALL_END broadcast");
-           forceCleanup();
-        })
+        .on('broadcast', { event: 'CALL_END' }, () => { forceCleanup(); })
         .subscribe();
 
       import('peerjs').then(({ default: PeerClass }) => {
@@ -71,42 +166,42 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           setRemoteUser({ id: call.peer, name: callerData?.name || 'Unknown User' });
           setCallType(call.metadata?.type || 'audio');
 
-          // Set up stream listener IMMEDIATELY when call arrives
           call.on('stream', (rStream: any) => {
             console.log('Received remote stream from caller');
             setRemoteStream(rStream);
+            // Stop ringtone when stream arrives (call connected)
+            if (ringtoneRef.current) { ringtoneRef.current.stop(); ringtoneRef.current = null; }
           });
           call.on('close', forceCleanup);
           call.on('error', forceCleanup);
 
+          // Start ringtone
+          ringtoneRef.current = createRingtone();
+          ringtoneRef.current.start();
+
           setIncomingCall(call);
         });
 
-        newPeer.on('error', (err: any) => {
-          console.error("PeerJS Error:", err);
-        });
-
+        newPeer.on('error', (err: any) => console.error("PeerJS Error:", err));
         setPeer(newPeer);
       }).catch(err => console.error("PeerJS import error", err));
     };
 
     initPeerAndSignaling();
-
     return () => {
       if (peer) peer.destroy();
       if (callChannel) supabase.removeChannel(callChannel);
     };
   }, []);
 
+  // ─── Cleanup ─────────────────────────────────────────────────
   const forceCleanup = () => {
-    setActiveCall((oldCall: any) => {
-       if (oldCall) oldCall.close();
-       return null;
-    });
-    setIncomingCall((oldIncoming: any) => {
-       if (oldIncoming) oldIncoming.close();
-       return null;
-    });
+    // Stop all tones
+    if (ringtoneRef.current) { ringtoneRef.current.stop(); ringtoneRef.current = null; }
+    if (dialToneRef.current) { dialToneRef.current.stop(); dialToneRef.current = null; }
+
+    setActiveCall((oldCall: any) => { if (oldCall) oldCall.close(); return null; });
+    setIncomingCall((oldIncoming: any) => { if (oldIncoming) oldIncoming.close(); return null; });
     setIsCalling(false);
     setRemoteStream(null);
     setLocalStream((oldStream: MediaStream | null) => {
@@ -119,14 +214,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const notifyRemoteEnd = async (targetId: string) => {
      await supabase.channel(`call_signals_${targetId}`).send({
-        type: 'broadcast',
-        event: 'CALL_END',
-        payload: {}
+        type: 'broadcast', event: 'CALL_END', payload: {}
      });
   };
 
+  // ─── Start Call (Outgoing) ───────────────────────────────────
   const startCall = async (targetUserId: string, targetUserName: string, type: CallType) => {
-    if (!peer) return alert("Call system is disconnected. Please refresh.");
+    if (!peer) return alert("Call system disconnected. Please refresh.");
     try {
       setIsCalling(true);
       setCallType(type);
@@ -135,12 +229,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
       setLocalStream(stream);
       
+      // Play dial tone
+      dialToneRef.current = createDialTone();
+      dialToneRef.current.start();
+
       const call = peer.call(targetUserId, stream, { metadata: { type } });
-      
-      call.on('stream', (rStream: any) => setRemoteStream(rStream));
+      call.on('stream', (rStream: any) => {
+        setRemoteStream(rStream);
+        // Stop dial tone when connected
+        if (dialToneRef.current) { dialToneRef.current.stop(); dialToneRef.current = null; }
+      });
       call.on('close', forceCleanup);
       call.on('error', forceCleanup);
-      
       setActiveCall(call);
     } catch (err) {
       console.error("Failed to start call", err);
@@ -149,31 +249,30 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // ─── Answer Call ─────────────────────────────────────────────
   const answerCall = async () => {
     if (!incomingCall) return;
+    // Stop ringtone
+    if (ringtoneRef.current) { ringtoneRef.current.stop(); ringtoneRef.current = null; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
       setLocalStream(stream);
 
-      // Stream listener is already set up when the call arrived.
-      // Set up additional listeners for close/error just in case.
       incomingCall.on('close', forceCleanup);
       incomingCall.on('error', forceCleanup);
-      
-      // Answer AFTER listeners are ready
       incomingCall.answer(stream);
-      console.log('Answered call with local stream, tracks:', stream.getTracks().map((t: MediaStreamTrack) => t.kind + ':' + t.enabled));
       
       setActiveCall(incomingCall);
       setIncomingCall(null);
     } catch(err) {
        console.error("Failed to answer", err);
-       alert("Could not access camera/microphone to answer.");
+       alert("Could not access camera/microphone.");
        forceCleanup();
     }
   };
 
   const rejectCall = () => {
+    if (ringtoneRef.current) { ringtoneRef.current.stop(); ringtoneRef.current = null; }
     if (incomingCall) notifyRemoteEnd(incomingCall.peer);
     forceCleanup();
   };
@@ -183,210 +282,251 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     forceCleanup();
   };
 
+  // ─── Toggles ─────────────────────────────────────────────────
   const toggleMute = () => {
     if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-         audioTrack.enabled = !audioTrack.enabled;
-         setIsMuted(!audioTrack.enabled);
-      }
+      const t = localStream.getAudioTracks()[0];
+      if (t) { t.enabled = !t.enabled; setIsMuted(!t.enabled); }
     }
   };
 
   const toggleVideo = () => {
     if (localStream && callType === 'video') {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-         videoTrack.enabled = !videoTrack.enabled;
-         setIsVideoOff(!videoTrack.enabled);
-      }
+      const t = localStream.getVideoTracks()[0];
+      if (t) { t.enabled = !t.enabled; setIsVideoOff(!t.enabled); }
     }
   };
 
+  const flipCamera = async () => {
+    if (!localStream || callType !== 'video') return;
+    const currentTrack = localStream.getVideoTracks()[0];
+    if (!currentTrack) return;
+    const settings = currentTrack.getSettings();
+    const newFacing = settings.facingMode === 'user' ? 'environment' : 'user';
+    currentTrack.stop();
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: newFacing }, audio: true });
+      setLocalStream(newStream);
+      // Replace track in active call
+      if (activeCall?.peerConnection) {
+        const sender = activeCall.peerConnection.getSenders().find((s: any) => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(newStream.getVideoTracks()[0]);
+      }
+    } catch(e) { console.warn('Flip camera failed', e); }
+  };
+
+  // ─── Profile Initial ────────────────────────────────────────
+  const getInitial = (name: string) => (name || '?')[0].toUpperCase();
+
+  // ═══════════════════════════════════════════════════════════════
+  //  R E N D E R
+  // ═══════════════════════════════════════════════════════════════
   return (
     <CallContext.Provider value={{ startCall, endCall, isCalling, activeCall }}>
       {children}
       
-      {/* Hidden Audio Elements for Audio Calls */}
+      {/* Hidden audio for voice-only calls */}
       {callType === 'audio' && localStream && (
-         <audio muted autoPlay ref={(el) => { 
-            if (el && el.srcObject !== localStream) {
-               el.srcObject = localStream;
-               el.play().catch(e => console.warn("Local audio play blocked:", e));
-            }
-         }} className="hidden" />
+         <audio muted autoPlay ref={(el) => { if (el && el.srcObject !== localStream) { el.srcObject = localStream; el.play().catch(() => {}); }}} className="hidden" />
       )}
       {callType === 'audio' && remoteStream && (
-         <audio autoPlay muted={isSpeakerOff} ref={(el) => { 
-            if (el && el.srcObject !== remoteStream) {
-               el.srcObject = remoteStream;
-               el.play().catch(e => console.warn("Remote audio play blocked:", e));
-            }
-         }} className="hidden" />
+         <audio autoPlay muted={isSpeakerOff} ref={(el) => { if (el && el.srcObject !== remoteStream) { el.srcObject = remoteStream; el.play().catch(() => {}); }}} className="hidden" />
       )}
 
-      {/* Global Incoming Call Modal */}
+      {/* ─── INCOMING CALL (Instagram-style fullscreen) ─── */}
       <AnimatePresence>
         {incomingCall && !activeCall && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-black to-gray-900 p-8"
           >
-             <motion.div 
-               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-               className="w-full max-w-sm rounded-3xl border border-[var(--border-color-strong)] bg-[var(--bg-panel)] p-6 shadow-2xl flex flex-col items-center text-center"
-             >
-                <div className="h-24 w-24 rounded-full bg-[var(--bg-hover)] flex items-center justify-center mb-4 border border-[var(--border-color)] relative">
-                   {callType === 'video' ? <Video className="h-10 w-10 text-emerald-500 animate-pulse relative z-10" /> : <Phone className="h-10 w-10 text-emerald-500 animate-pulse relative z-10" />}
-                   <div className="absolute inset-0 rounded-full border border-emerald-500 animate-ping opacity-50"></div>
+            {/* Top spacer */}
+            <div className="pt-12" />
+
+            {/* Profile */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <div className="h-28 w-28 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl shadow-emerald-500/20">
+                  {getInitial(remoteUser?.name || '')}
                 </div>
-                <h3 className="text-2xl font-bold text-[var(--text-strong)] mb-2">
-                  Incoming {callType === 'video' ? 'Video' : 'Voice'} Call
-                </h3>
-                <p className="text-[var(--text-muted)] mb-8 text-lg">From {remoteUser?.name || 'Unknown'}</p>
-                
-                <div className="flex w-full gap-4">
-                  <button onClick={rejectCall} className="flex-1 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 font-bold py-4 transition-colors">
-                    Decline
-                  </button>
-                  <button onClick={answerCall} className="flex-1 rounded-xl bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 font-bold py-4 transition-colors flex items-center justify-center gap-2">
-                    {callType === 'video' ? <Video className="h-5 w-5" /> : <Phone className="h-5 w-5" />} Answer
-                  </button>
-                </div>
-             </motion.div>
+                <div className="absolute inset-0 rounded-full border-2 border-emerald-400 animate-ping opacity-30" />
+                <div className="absolute -inset-2 rounded-full border border-emerald-400/20 animate-pulse" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mt-2">{remoteUser?.name || 'Unknown'}</h2>
+              <p className="text-gray-400 text-sm font-medium tracking-wide uppercase">
+                Incoming {callType === 'video' ? 'Video' : 'Voice'} Call
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex items-center gap-16 pb-12">
+              <div className="flex flex-col items-center gap-2">
+                <button onClick={rejectCall} className="h-16 w-16 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all">
+                  <Phone className="h-7 w-7 rotate-[135deg]" />
+                </button>
+                <span className="text-xs text-gray-400 font-medium">Decline</span>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <button onClick={answerCall} className="h-16 w-16 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 active:scale-95 transition-all">
+                  {callType === 'video' ? <Video className="h-7 w-7" /> : <Phone className="h-7 w-7" />}
+                </button>
+                <span className="text-xs text-gray-400 font-medium">Accept</span>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Global Active Call Overlay (Audio Only) */}
+      {/* ─── OUTGOING / ACTIVE VOICE CALL (Instagram-style fullscreen) ─── */}
       <AnimatePresence>
         {(isCalling || activeCall) && callType === 'audio' && (
           <motion.div 
-            initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -50 }}
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-[9998] flex items-center gap-4 rounded-full border border-[var(--border-color-strong)] bg-black/90 px-6 py-3 shadow-2xl backdrop-blur-md min-w-[320px]"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9998] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-black to-gray-900 p-8"
           >
-             <div className="flex items-center gap-3 w-full">
-                <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500 shrink-0">
-                  <Phone className="h-5 w-5" />
-                  <div className="absolute inset-0 rounded-full border-2 border-emerald-500 animate-ping opacity-30"></div>
-                </div>
-                <div className="flex flex-col flex-1">
-                   <span className="text-sm font-bold text-white truncate max-w-[100px]">{remoteUser?.name || 'Unknown'}</span>
-                   <span className="text-xs text-emerald-400 font-medium tracking-wide uppercase">
-                     {activeCall ? 'Connected' : 'Calling...'}
-                   </span>
-                </div>
+            {/* Top spacer */}
+            <div className="pt-12" />
 
-                {/* Controls */}
-                <div className="flex items-center gap-2">
-                   <button onClick={toggleMute} className={`p-2 rounded-full ${isMuted ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white'} transition-colors`}>
-                     {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                   </button>
-                   <button onClick={() => setIsSpeakerOff(!isSpeakerOff)} className={`p-2 rounded-full ${isSpeakerOff ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white'} transition-colors`} title="Mute/Unmute Speaker">
-                     {isSpeakerOff ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                   </button>
+            {/* Profile + status */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <div className="h-28 w-28 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl shadow-violet-500/20">
+                  {getInitial(remoteUser?.name || '')}
                 </div>
+                {!isConnected && <div className="absolute inset-0 rounded-full border-2 border-violet-400 animate-ping opacity-30" />}
+              </div>
+              <h2 className="text-2xl font-bold text-white mt-2">{remoteUser?.name || 'Unknown'}</h2>
+              <p className="text-gray-400 text-sm font-medium tracking-wide">
+                {isConnected ? (
+                  <span className="text-emerald-400 text-lg font-mono">{timer}</span>
+                ) : (
+                  <span className="uppercase tracking-widest">Calling...</span>
+                )}
+              </p>
+            </div>
 
-                <button 
-                  onClick={endCall}
-                  className="ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg"
-                >
-                  <Phone className="h-4 w-4 rotate-[135deg]" />
+            {/* Controls */}
+            <div className="flex items-center gap-8 pb-12">
+              <div className="flex flex-col items-center gap-2">
+                <button onClick={toggleMute} className={`h-14 w-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-black' : 'bg-white/10 text-white'}`}>
+                  {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
                 </button>
-             </div>
+                <span className="text-[10px] text-gray-500 uppercase">{isMuted ? 'Unmute' : 'Mute'}</span>
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <button onClick={endCall} className="h-16 w-16 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all">
+                  <Phone className="h-7 w-7 rotate-[135deg]" />
+                </button>
+                <span className="text-[10px] text-gray-500 uppercase">End</span>
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <button onClick={() => setIsSpeakerOff(!isSpeakerOff)} className={`h-14 w-14 rounded-full flex items-center justify-center transition-all ${isSpeakerOff ? 'bg-white text-black' : 'bg-white/10 text-white'}`}>
+                  {isSpeakerOff ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+                </button>
+                <span className="text-[10px] text-gray-500 uppercase">{isSpeakerOff ? 'Unmute' : 'Speaker'}</span>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Global Active Call Overlay (Video) */}
+      {/* ─── OUTGOING / ACTIVE VIDEO CALL (Instagram-style fullscreen) ─── */}
       <AnimatePresence>
         {(isCalling || activeCall) && callType === 'video' && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[9998] flex flex-col bg-black/95 backdrop-blur-lg"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9998] flex flex-col bg-black"
           >
-            {/* Header */}
-            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 to-transparent">
+            {/* Remote video (fullscreen) */}
+            {remoteStream ? (
+              <video 
+                autoPlay playsInline muted={isSpeakerOff}
+                ref={(el) => { if (el && el.srcObject !== remoteStream) { el.srcObject = remoteStream; el.play().catch(() => {}); }}}
+                className="absolute inset-0 w-full h-full object-cover z-0" 
+              />
+            ) : (
+              /* Waiting screen with profile */
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 via-black to-gray-900 z-0">
+                <div className="relative mb-6">
+                  <div className="h-28 w-28 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl">
+                    {getInitial(remoteUser?.name || '')}
+                  </div>
+                  <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-30" />
+                </div>
+                <h2 className="text-2xl font-bold text-white">{remoteUser?.name || 'Unknown'}</h2>
+                <p className="text-gray-400 text-sm font-medium tracking-widest uppercase mt-2">Calling...</p>
+              </div>
+            )}
+
+            {/* Header overlay */}
+            <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-20 bg-gradient-to-b from-black/60 to-transparent">
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-white">{remoteUser?.name || 'Unknown'}</span>
-                <span className="text-sm text-emerald-400 font-medium">
-                  {activeCall ? 'Secure Video Call Connected' : 'Calling...'}
+                <span className="text-lg font-bold text-white drop-shadow-lg">{remoteUser?.name || 'Unknown'}</span>
+                <span className="text-sm font-medium drop-shadow-lg">
+                  {isConnected ? (
+                    <span className="text-emerald-400 font-mono">{timer}</span>
+                  ) : (
+                    <span className="text-gray-300 tracking-wider">Calling...</span>
+                  )}
                 </span>
               </div>
             </div>
 
-            {/* Video Streams */}
-            <div className="flex-1 relative w-full h-full flex items-center justify-center overflow-hidden">
-              {/* Remote Video (Full Screen) */}
-              {remoteStream && (
-                 <video 
-                   autoPlay 
-                   playsInline
-                   muted={isSpeakerOff}
-                   ref={(el) => { 
-                      if (el && el.srcObject !== remoteStream) {
-                         el.srcObject = remoteStream;
-                         el.play().catch(e => console.warn("Remote video play blocked:", e));
-                      }
-                   }}
-                   className={`w-full h-full object-cover transition-opacity duration-500 ${activeCall ? 'opacity-100' : 'opacity-0'}`} 
-                 />
-              )}
-              
-              {!activeCall && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-32 w-32 rounded-full bg-emerald-500/20 flex items-center justify-center relative">
-                    <Video className="h-12 w-12 text-emerald-500 animate-pulse relative z-10" />
-                    <div className="absolute inset-0 rounded-full border-4 border-emerald-500 animate-ping opacity-30"></div>
+            {/* Local video PiP */}
+            {localStream && (
+              <div className="absolute top-20 right-4 w-28 h-40 md:w-36 md:h-52 bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 z-20">
+                <video 
+                  autoPlay playsInline muted 
+                  ref={(el) => { if (el && el.srcObject !== localStream) { el.srcObject = localStream; el.play().catch(() => {}); }}}
+                  className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : 'block'}`}
+                  style={{ transform: 'scaleX(-1)' }}
+                />
+                {isVideoOff && (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                    <CameraOff className="h-8 w-8 text-gray-500" />
                   </div>
-                </div>
-              )}
-
-              {/* Local Video (Picture-in-Picture) */}
-              {localStream && (
-                 <div className="absolute bottom-24 right-6 w-32 h-48 md:w-48 md:h-72 bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 z-20">
-                   <video 
-                     autoPlay 
-                     playsInline
-                     muted 
-                     ref={(el) => { 
-                        if (el && el.srcObject !== localStream) {
-                           el.srcObject = localStream;
-                           el.play().catch(e => console.warn("Local video play blocked:", e));
-                        }
-                     }}
-                     className={`w-full h-full object-cover mirror ${isVideoOff ? 'hidden' : 'block'}`}
-                     style={{ transform: 'scaleX(-1)' }}
-                   />
-                   {isVideoOff && (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                         <CameraOff className="h-8 w-8 text-gray-500" />
-                      </div>
-                   )}
-                 </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Controls */}
-            <div className="absolute bottom-0 left-0 right-0 p-8 flex justify-center items-center gap-6 z-20 bg-gradient-to-t from-black/80 to-transparent">
-              <button onClick={toggleMute} className={`flex h-14 w-14 items-center justify-center rounded-full ${isMuted ? 'bg-white text-black' : 'bg-white/10 text-white'} hover:bg-white/20 transition-colors backdrop-blur-md border border-white/10`}>
-                 {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-              </button>
+            <div className="absolute bottom-0 left-0 right-0 p-8 flex justify-center items-center gap-6 z-20 bg-gradient-to-t from-black/70 to-transparent">
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={toggleMute} className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-black' : 'bg-white/15 text-white backdrop-blur-md'}`}>
+                  {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                </button>
+                <span className="text-[10px] text-white/60">{isMuted ? 'Unmute' : 'Mute'}</span>
+              </div>
+
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={toggleVideo} className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${isVideoOff ? 'bg-white text-black' : 'bg-white/15 text-white backdrop-blur-md'}`}>
+                  {isVideoOff ? <CameraOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
+                </button>
+                <span className="text-[10px] text-white/60">{isVideoOff ? 'Camera On' : 'Camera Off'}</span>
+              </div>
+
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={flipCamera} className="h-12 w-12 rounded-full bg-white/15 text-white backdrop-blur-md flex items-center justify-center transition-all hover:bg-white/25">
+                  <RotateCcw className="h-5 w-5" />
+                </button>
+                <span className="text-[10px] text-white/60">Flip</span>
+              </div>
               
-              <button onClick={toggleVideo} className={`flex h-14 w-14 items-center justify-center rounded-full ${isVideoOff ? 'bg-white text-black' : 'bg-white/10 text-white'} hover:bg-white/20 transition-colors backdrop-blur-md border border-white/10`}>
-                 {isVideoOff ? <CameraOff className="h-6 w-6" /> : <Camera className="h-6 w-6" />}
-              </button>
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={() => setIsSpeakerOff(!isSpeakerOff)} className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${isSpeakerOff ? 'bg-white text-black' : 'bg-white/15 text-white backdrop-blur-md'}`}>
+                  {isSpeakerOff ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                </button>
+                <span className="text-[10px] text-white/60">Speaker</span>
+              </div>
 
-              <button onClick={() => setIsSpeakerOff(!isSpeakerOff)} className={`flex h-14 w-14 items-center justify-center rounded-full ${isSpeakerOff ? 'bg-white text-black' : 'bg-white/10 text-white'} hover:bg-white/20 transition-colors backdrop-blur-md border border-white/10`} title="Mute/Unmute Remote Audio">
-                 {isSpeakerOff ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-              </button>
-
-              <button 
-                onClick={endCall}
-                className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-2xl hover:scale-110 active:scale-95 ml-4"
-              >
-                <Phone className="h-8 w-8 rotate-[135deg]" />
-              </button>
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={endCall} className="h-14 w-14 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all">
+                  <Phone className="h-6 w-6 rotate-[135deg]" />
+                </button>
+                <span className="text-[10px] text-white/60">End</span>
+              </div>
             </div>
           </motion.div>
         )}
@@ -398,8 +538,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
 export const useCall = () => {
   const context = useContext(CallContext);
-  if (context === undefined) {
-    throw new Error('useCall must be used within a CallProvider');
-  }
+  if (context === undefined) throw new Error('useCall must be used within a CallProvider');
   return context;
 };
