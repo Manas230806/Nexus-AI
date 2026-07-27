@@ -90,17 +90,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const forceCleanup = () => {
-    setActiveCall(oldCall => {
+    setActiveCall((oldCall: any) => {
        if (oldCall) oldCall.close();
        return null;
     });
-    setIncomingCall(oldIncoming => {
+    setIncomingCall((oldIncoming: any) => {
        if (oldIncoming) oldIncoming.close();
        return null;
     });
     setIsCalling(false);
     setRemoteStream(null);
-    setLocalStream(oldStream => {
+    setLocalStream((oldStream: MediaStream | null) => {
        if (oldStream) oldStream.getTracks().forEach(track => track.stop());
        return null;
     });
