@@ -197,10 +197,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       
       {/* Hidden Audio Elements for Audio Calls */}
       {callType === 'audio' && localStream && (
-         <audio muted autoPlay ref={(el) => { if (el) el.srcObject = localStream }} className="hidden" />
+         <audio muted autoPlay ref={(el) => { 
+            if (el && el.srcObject !== localStream) {
+               el.srcObject = localStream;
+               el.play().catch(e => console.warn("Local audio play blocked:", e));
+            }
+         }} className="hidden" />
       )}
       {callType === 'audio' && remoteStream && (
-         <audio autoPlay muted={isSpeakerOff} ref={(el) => { if (el) el.srcObject = remoteStream }} className="hidden" />
+         <audio autoPlay muted={isSpeakerOff} ref={(el) => { 
+            if (el && el.srcObject !== remoteStream) {
+               el.srcObject = remoteStream;
+               el.play().catch(e => console.warn("Remote audio play blocked:", e));
+            }
+         }} className="hidden" />
       )}
 
       {/* Global Incoming Call Modal */}
@@ -301,7 +311,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                    autoPlay 
                    playsInline
                    muted={isSpeakerOff}
-                   ref={(el) => { if (el) el.srcObject = remoteStream }}
+                   ref={(el) => { 
+                      if (el && el.srcObject !== remoteStream) {
+                         el.srcObject = remoteStream;
+                         el.play().catch(e => console.warn("Remote video play blocked:", e));
+                      }
+                   }}
                    className={`w-full h-full object-cover transition-opacity duration-500 ${activeCall ? 'opacity-100' : 'opacity-0'}`} 
                  />
               )}
@@ -322,7 +337,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                      autoPlay 
                      playsInline
                      muted 
-                     ref={(el) => { if (el) el.srcObject = localStream }}
+                     ref={(el) => { 
+                        if (el && el.srcObject !== localStream) {
+                           el.srcObject = localStream;
+                           el.play().catch(e => console.warn("Local video play blocked:", e));
+                        }
+                     }}
                      className={`w-full h-full object-cover mirror ${isVideoOff ? 'hidden' : 'block'}`}
                      style={{ transform: 'scaleX(-1)' }}
                    />
