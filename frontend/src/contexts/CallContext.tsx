@@ -110,10 +110,7 @@ function useCallTimer(isActive: boolean) {
 
 // ─── Provider ──────────────────────────────────────────────────────
 export function CallProvider({ children }: { children: React.ReactNode }) {
-  const [peer, setPeer] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  
-  const [incomingCall, setIncomingCall] = useState<any>(null);
   const [currentUserName, setCurrentUserName] = useState<string>('Boss');
   
   const [incomingCall, setIncomingCall] = useState<string | null>(null);
