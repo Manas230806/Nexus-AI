@@ -400,6 +400,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[9998] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-black to-gray-900 p-4 sm:p-8 safe-area-inset"
           >
+            {/* Debug HUD to instantly diagnose WebRTC issues */}
+            <div className="absolute top-4 left-4 text-[10px] text-white/40 bg-black/40 p-2 rounded-lg font-mono text-left select-none max-w-[200px] border border-white/5 backdrop-blur-sm z-30">
+              <div>Peer: {peer ? 'Connected' : 'Offline'}</div>
+              <div>Local: {localStream ? 'Ready' : 'None'} ({localStream?.getTracks().map(t => t.kind).join(',') || 'n/a'})</div>
+              <div>Remote: {remoteStream ? 'Active' : 'Waiting'} ({remoteStream?.getTracks().map(t => t.kind).join(',') || 'n/a'})</div>
+              <div>Tracks: A:{isMuted ? 'M' : 'E'}</div>
+            </div>
+
             {/* Top spacer */}
             <div className="pt-8 sm:pt-12" />
 
@@ -477,7 +485,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             )}
 
             {/* Header overlay */}
-            <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between z-20 bg-gradient-to-b from-black/60 to-transparent">
+            <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-start justify-between z-20 bg-gradient-to-b from-black/60 to-transparent">
               <div className="flex flex-col">
                 <span className="text-base sm:text-lg font-bold text-white drop-shadow-lg">{remoteUser?.name || 'Unknown'}</span>
                 <span className="text-xs sm:text-sm font-medium drop-shadow-lg">
@@ -487,6 +495,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                     <span className="text-gray-300 tracking-wider">Calling...</span>
                   )}
                 </span>
+              </div>
+              
+              {/* Debug HUD to instantly diagnose WebRTC issues */}
+              <div className="text-[10px] text-white/40 bg-black/40 p-2 rounded-lg font-mono text-left select-none max-w-[200px] border border-white/5 backdrop-blur-sm">
+                <div>Peer: {peer ? 'Connected' : 'Offline'}</div>
+                <div>Local: {localStream ? 'Ready' : 'None'} ({localStream?.getTracks().map(t => t.kind).join(',') || 'n/a'})</div>
+                <div>Remote: {remoteStream ? 'Active' : 'Waiting'} ({remoteStream?.getTracks().map(t => t.kind).join(',') || 'n/a'})</div>
+                <div>Tracks: A:{isMuted ? 'M' : 'E'} V:{isVideoOff ? 'Off' : 'On'}</div>
               </div>
             </div>
 
