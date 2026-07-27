@@ -325,11 +325,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     <CallContext.Provider value={{ startCall, endCall, isCalling, activeCall }}>
       {children}
       
-      {/* Hidden audio for voice-only calls */}
-      {callType === 'audio' && localStream && (
+      {/* ALWAYS render a hidden audio for remote stream - this guarantees voice works for ALL call types */}
+      {localStream && (
          <audio muted autoPlay ref={(el) => { if (el && el.srcObject !== localStream) { el.srcObject = localStream; el.play().catch(() => {}); }}} className="hidden" />
       )}
-      {callType === 'audio' && remoteStream && (
+      {remoteStream && (
          <audio autoPlay muted={isSpeakerOff} ref={(el) => { if (el && el.srcObject !== remoteStream) { el.srcObject = remoteStream; el.play().catch(() => {}); }}} className="hidden" />
       )}
 
