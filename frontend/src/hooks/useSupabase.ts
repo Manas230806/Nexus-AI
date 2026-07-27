@@ -685,3 +685,95 @@ export function useMemoryVault(userId: string | null) {
 
   return { memories, loading, addMemory, deleteMemory, refreshVault: fetchVault };
 }
+
+export type CalendarEvent = {
+  id: string;
+  user_id: string;
+  title: string;
+  date: number;
+  time: string;
+  color: string;
+  is_meeting: boolean;
+  reminder_set: boolean;
+  created_at: string;
+};
+
+export function useCalendarEvents(userId: string | undefined) {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) {
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    const fetchEvents = async () => {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+        
+      if (data) {
+        setEvents(data as CalendarEvent[]);
+      }
+      if (error) {
+        console.error('Error fetching events:', error);
+      }
+      setLoading(false);
+    };
+
+    fetchEvents();
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel('calendar_events_channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'calendar_events', filter: `user_id=eq.${userId}` },
+        (payload: any) => {
+          if (payload.eventType === 'INSERT') {
+            setEvents((prev) => [...prev, payload.new as CalendarEvent]);
+          } else if (payload.eventType === 'UPDATE') {
+            setEvents((prev) => prev.map(ev => ev.id === payload.new.id ? payload.new as CalendarEvent : ev));
+          } else if (payload.eventType === 'DELETE') {
+            setEvents((prev) => prev.filter(ev => ev.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  const createEvent = async (eventData: Omit<CalendarEvent, 'id' | 'created_at' | 'user_id'>) => {
+    if (!userId) return null;
+    const { data, error } = await supabase.from('calendar_events').insert({
+      ...eventData,
+      user_id: userId
+    }).select().single();
+    
+    if (error) console.error('Error creating event:', error);
+    return { data, error };
+  };
+
+  const updateEvent = async (id: string, updates: Partial<CalendarEvent>) => {
+    const { data, error } = await supabase.from('calendar_events').update(updates).eq('id', id).select().single();
+    if (error) console.error('Error updating event:', error);
+    return { data, error };
+  };
+
+  const deleteEvent = async (id: string) => {
+    const { error } = await supabase.from('calendar_events').delete().eq('id', id);
+    if (error) console.error('Error deleting event:', error);
+    return { error };
+  };
+
+  return { events, loading, createEvent, updateEvent, deleteEvent };
+}

@@ -1,29 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Users, Bell } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Users, Bell, AlertTriangle } from 'lucide-react';
 import Shell from '../../../components/Shell';
 import { motion, AnimatePresence } from 'framer-motion';
-
-type Event = {
-  id: string;
-  title: string;
-  time: string;
-  date: number;
-  color: string;
-  isMeeting?: boolean;
-  reminderSet?: boolean;
-};
-
-const initialEvents: Event[] = [
-  { id: '1', title: 'Product Sync', time: '10:00', date: 15, color: 'bg-sky-500', isMeeting: true, reminderSet: false },
-  { id: '2', title: 'Design Review', time: '14:30', date: 17, color: 'bg-violet-500', isMeeting: false, reminderSet: false },
-  { id: '3', title: 'Weekly Standup', time: '09:00', date: 18, color: 'bg-emerald-500', isMeeting: true, reminderSet: true },
-  { id: '4', title: 'Client Pitch', time: '13:00', date: 22, color: 'bg-amber-500', isMeeting: true, reminderSet: false },
-];
+import { useCalendarEvents, useUser } from '../../../hooks/useSupabase';
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const { user } = useUser();
+  const { events, createEvent, updateEvent, deleteEvent } = useCalendarEvents(user?.id);
+
   const [isAdding, setIsAdding] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState('');
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
@@ -51,22 +37,21 @@ export default function CalendarPage() {
   const startingDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
   const monthName = today.toLocaleString('default', { month: 'long' });
 
-  const handleAddEvent = (e: React.FormEvent) => {
+  const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEventTitle.trim() || !selectedDate) return;
+    if (!newEventTitle.trim() || !selectedDate || !user) return;
     
     const colors = ['bg-sky-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
-    setEvents([...events, {
-      id: Math.random().toString(),
+    await createEvent({
       title: newEventTitle,
       time: selectedTime,
       date: selectedDate,
       color: randomColor,
-      isMeeting: isMeetingToggle,
-      reminderSet: false
-    }]);
+      is_meeting: isMeetingToggle,
+      reminder_set: false
+    });
     
     setNewEventTitle('');
     setIsAdding(false);
@@ -78,28 +63,80 @@ export default function CalendarPage() {
     }
   };
 
-  const handleSetReminder = (eventId: string) => {
+  const playNotificationChime = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } catch(e) {
+      console.error("Audio chime failed", e);
+    }
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      events.forEach(async (ev) => {
+        if (ev.reminder_set) {
+          const [hours, minutes] = ev.time.split(':').map(Number);
+          const evDate = new Date(currentYear, currentMonth, ev.date, hours, minutes);
+          
+          const diffMs = now.getTime() - evDate.getTime();
+          // If meeting is happening within the last 60 seconds
+          if (diffMs >= 0 && diffMs < 60000) {
+            playNotificationChime();
+            
+            if ('Notification' in window && Notification.permission === 'granted') {
+               new Notification("Meeting Starting!", {
+                 body: `${ev.title} is starting now.`,
+               });
+            }
+            await updateEvent(ev.id, { reminder_set: false });
+          }
+        }
+      });
+    }, 10000); 
+
+    return () => clearInterval(interval);
+  }, [events, currentYear, currentMonth, updateEvent]);
+
+  const handleSetReminder = async (eventId: string) => {
     if ('Notification' in window) {
-      Notification.requestPermission().then(permission => {
+      Notification.requestPermission().then(async permission => {
         if (permission === 'granted') {
-          setEvents(events.map(ev => ev.id === eventId ? { ...ev, reminderSet: true } : ev));
+          await updateEvent(eventId, { reminder_set: true });
           new Notification("Reminder Set!", {
             body: "Nexus AI will notify you when this meeting starts.",
-            icon: "/favicon.ico"
           });
         } else {
           alert("Please enable browser notifications to set meeting reminders.");
         }
       });
     } else {
-      alert("Your browser does not support notifications.");
+      await updateEvent(eventId, { reminder_set: true });
+      alert("Browser notifications not supported. You will still hear an audio chime.");
     }
   };
 
-  const handleDeleteEvent = (e: React.MouseEvent, id: string) => {
+  const handleDeleteEvent = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this?')) {
-      setEvents(events.filter(ev => ev.id !== id));
+      await deleteEvent(id);
     }
   };
 
@@ -282,7 +319,7 @@ export default function CalendarPage() {
                           title={`${event.title} at ${event.time}`}
                         >
                           <div className="flex items-center gap-1 truncate">
-                            {event.isMeeting && <Users className="w-2.5 h-2.5 inline shrink-0" />}
+                            {event.is_meeting && <Users className="w-2.5 h-2.5 inline shrink-0" />}
                             <span className="truncate">{event.time} - {event.title}</span>
                           </div>
                           <button 
@@ -301,55 +338,127 @@ export default function CalendarPage() {
           </div>
         ) : (
           <div className="flex flex-col rounded-[28px] border border-[var(--border-color-strong)] bg-[var(--bg-panel)]/40 p-6 shadow-xl backdrop-blur-xl">
-             <div className="max-w-4xl mx-auto space-y-4">
-               {events.filter(e => e.isMeeting).length === 0 && (
-                 <div className="text-center py-20">
-                   <Users className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-4 opacity-50" />
-                   <p className="text-[var(--text-main)]">No upcoming meetings scheduled.</p>
-                   <button onClick={() => { setIsAdding(true); setIsMeetingToggle(true); }} className="mt-4 text-violet-400 hover:underline">Schedule one now</button>
+             <div className="max-w-4xl mx-auto space-y-8 w-full">
+               
+               {/* UPCOMING MEETINGS */}
+               <div>
+                 <h2 className="text-xl font-bold text-[var(--text-strong)] mb-4 flex items-center gap-2">
+                   <Clock className="text-violet-400 h-5 w-5" /> Upcoming Meetings
+                 </h2>
+                 {events.filter(e => {
+                   if (!e.is_meeting) return false;
+                   const [hours, minutes] = e.time.split(':').map(Number);
+                   const mDate = new Date(currentYear, currentMonth, e.date, hours, minutes);
+                   return mDate >= new Date();
+                 }).length === 0 ? (
+                   <div className="text-center py-10 bg-[var(--bg-hover)] rounded-2xl border border-[var(--border-color)] border-dashed">
+                     <Users className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-2 opacity-50" />
+                     <p className="text-[var(--text-main)] text-sm">No upcoming meetings scheduled.</p>
+                     <button onClick={() => { setIsAdding(true); setIsMeetingToggle(true); }} className="mt-2 text-violet-400 hover:underline text-sm font-semibold">Schedule one now</button>
+                   </div>
+                 ) : (
+                   <div className="space-y-4">
+                     {events.filter(e => {
+                       if (!e.is_meeting) return false;
+                       const [hours, minutes] = e.time.split(':').map(Number);
+                       const mDate = new Date(currentYear, currentMonth, e.date, hours, minutes);
+                       return mDate >= new Date();
+                     }).sort((a, b) => a.date - b.date).map(meeting => (
+                       <motion.div 
+                         key={meeting.id}
+                         layoutId={`event-${meeting.id}`}
+                         className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-[var(--bg-panel)] rounded-[24px] border border-[var(--border-color-strong)] shadow-sm hover:border-violet-500/30 transition-all gap-4"
+                       >
+                         <div className="flex items-center gap-5">
+                            <div className={`w-16 h-16 rounded-[20px] flex flex-col items-center justify-center ${meeting.color} bg-opacity-10 text-[var(--text-strong)] border border-[var(--border-color)]`}>
+                              <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">{monthName.slice(0, 3)}</span>
+                              <span className="text-2xl font-bold leading-none mt-1">{meeting.date}</span>
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-bold text-[var(--text-strong)] flex items-center gap-2">
+                                {meeting.title}
+                              </h4>
+                              <div className="text-sm text-[var(--text-muted)] flex items-center gap-3 mt-1">
+                                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> {meeting.time}</span>
+                                {meeting.reminder_set && <span className="flex items-center gap-1 text-green-400"><Bell className="w-3.5 h-3.5" /> Reminder Active</span>}
+                              </div>
+                            </div>
+                         </div>
+                         
+                         <div className="flex items-center gap-2">
+                           <button 
+                             onClick={() => handleSetReminder(meeting.id)}
+                             disabled={meeting.reminder_set}
+                             className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 justify-center shrink-0 ${meeting.reminder_set ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-[var(--bg-hover-strong)] text-[var(--text-strong)] hover:bg-[var(--bg-hover)]'}`}
+                           >
+                             {meeting.reminder_set ? 'Reminder Set ✓' : 'Set Reminder'}
+                           </button>
+                           <button 
+                             onClick={(e) => handleDeleteEvent(e, meeting.id)}
+                             className="p-2.5 rounded-xl text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-400/10 transition flex items-center justify-center shrink-0"
+                             title="Delete Meeting"
+                           >
+                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                           </button>
+                         </div>
+                       </motion.div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+
+               {/* OVERDUE MEETINGS */}
+               {events.some(e => {
+                 if (!e.is_meeting) return false;
+                 const [hours, minutes] = e.time.split(':').map(Number);
+                 const mDate = new Date(currentYear, currentMonth, e.date, hours, minutes);
+                 return mDate < new Date();
+               }) && (
+                 <div>
+                   <h2 className="text-xl font-bold text-rose-400 mb-4 flex items-center gap-2">
+                     <AlertTriangle className="h-5 w-5" /> Overdue Meetings
+                   </h2>
+                   <div className="space-y-4">
+                     {events.filter(e => {
+                       if (!e.is_meeting) return false;
+                       const [hours, minutes] = e.time.split(':').map(Number);
+                       const mDate = new Date(currentYear, currentMonth, e.date, hours, minutes);
+                       return mDate < new Date();
+                     }).sort((a, b) => b.date - a.date).map(meeting => (
+                       <motion.div 
+                         key={meeting.id}
+                         layoutId={`event-${meeting.id}`}
+                         className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-rose-500/5 rounded-[24px] border border-rose-500/20 shadow-sm opacity-75 hover:opacity-100 transition-all gap-4"
+                       >
+                         <div className="flex items-center gap-5">
+                            <div className={`w-16 h-16 rounded-[20px] flex flex-col items-center justify-center ${meeting.color} bg-opacity-10 text-[var(--text-strong)] border border-rose-500/30 grayscale`}>
+                              <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">{monthName.slice(0, 3)}</span>
+                              <span className="text-2xl font-bold leading-none mt-1">{meeting.date}</span>
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-bold text-[var(--text-strong)] flex items-center gap-2">
+                                {meeting.title}
+                              </h4>
+                              <div className="text-sm text-rose-400 flex items-center gap-3 mt-1">
+                                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> {meeting.time} (Passed)</span>
+                              </div>
+                            </div>
+                         </div>
+                         
+                         <div className="flex items-center gap-2">
+                           <button 
+                             onClick={(e) => handleDeleteEvent(e, meeting.id)}
+                             className="px-5 py-2.5 rounded-xl text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 transition flex items-center justify-center shrink-0 text-sm font-bold"
+                           >
+                             Dismiss / Delete
+                           </button>
+                         </div>
+                       </motion.div>
+                     ))}
+                   </div>
                  </div>
                )}
-               
-               {events.filter(e => e.isMeeting).sort((a, b) => a.date - b.date).map(meeting => (
-                 <motion.div 
-                   key={meeting.id}
-                   layoutId={`event-${meeting.id}`}
-                   className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-[var(--bg-panel)] rounded-[24px] border border-[var(--border-color-strong)] shadow-sm hover:border-violet-500/30 transition-all gap-4"
-                 >
-                   <div className="flex items-center gap-5">
-                      <div className={`w-16 h-16 rounded-[20px] flex flex-col items-center justify-center ${meeting.color} bg-opacity-10 text-[var(--text-strong)] border border-[var(--border-color)]`}>
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">{monthName.slice(0, 3)}</span>
-                        <span className="text-2xl font-bold leading-none mt-1">{meeting.date}</span>
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-bold text-[var(--text-strong)] flex items-center gap-2">
-                          {meeting.title}
-                        </h4>
-                        <div className="text-sm text-[var(--text-muted)] flex items-center gap-3 mt-1">
-                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> {meeting.time}</span>
-                          {meeting.reminderSet && <span className="flex items-center gap-1 text-green-400"><Bell className="w-3.5 h-3.5" /> Reminder Active</span>}
-                        </div>
-                      </div>
-                   </div>
-                   
-                   <div className="flex items-center gap-2">
-                     <button 
-                       onClick={() => handleSetReminder(meeting.id)}
-                       disabled={meeting.reminderSet}
-                       className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 justify-center shrink-0 ${meeting.reminderSet ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-[var(--bg-hover-strong)] text-[var(--text-strong)] hover:bg-[var(--bg-hover)]'}`}
-                     >
-                       {meeting.reminderSet ? 'Reminder Set ✓' : 'Set Reminder'}
-                     </button>
-                     <button 
-                       onClick={(e) => handleDeleteEvent(e, meeting.id)}
-                       className="p-2.5 rounded-xl text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-400/10 transition flex items-center justify-center shrink-0"
-                       title="Delete Meeting"
-                     >
-                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-                     </button>
-                   </div>
-                 </motion.div>
-               ))}
+
              </div>
           </div>
         )}
