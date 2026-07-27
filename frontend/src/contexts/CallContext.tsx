@@ -132,6 +132,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const dialToneRef = useRef<ReturnType<typeof createDialTone> | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const signalingChannelRef = useRef<any>(null);
+  const iceCandidatesQueueRef = useRef<any[]>([]);
 
   const isConnected = !!(activeCall && remoteStream);
   const timer = useCallTimer(isConnected);
@@ -214,12 +215,19 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         })
         .on('broadcast', { event: 'ANSWER' }, async ({ payload }) => {
            if (payload.targetId !== myId) return;
-           if (pcRef.current) await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
+           console.log("WebRTC: Received ANSWER");
+           if (pcRef.current) {
+              await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
+              // Process any queued candidates received while setting description
+              await processIceCandidatesQueue(pcRef.current);
+           }
         })
         .on('broadcast', { event: 'ICE_CANDIDATE' }, async ({ payload }) => {
            if (payload.targetId !== myId) return;
-           if (pcRef.current && payload.candidate) {
+           if (pcRef.current && pcRef.current.remoteDescription) {
               try { await pcRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate)); } catch (e) {}
+           } else {
+              iceCandidatesQueueRef.current.push(payload.candidate);
            }
         })
         .on('broadcast', { event: 'CALL_END' }, ({ payload }) => {
@@ -250,6 +258,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
     setIsMuted(false);
     setIsVideoOff(false);
+    iceCandidatesQueueRef.current = [];
   };
 
   const notifyRemoteEnd = async (targetId: string) => { await sendSignalingMessage(targetId, 'CALL_END', {}); };
@@ -279,6 +288,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setLocalStream(stream);
       const pc = createPeerConnection(incomingCall, stream);
       await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+      // Process queued candidates immediately after remote description is set
+      await processIceCandidatesQueue(pc);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       await sendSignalingMessage(incomingCall, 'ANSWER', { answer });
