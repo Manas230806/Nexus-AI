@@ -39,12 +39,16 @@ export default function CalendarPage() {
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEventTitle.trim() || !selectedDate || !user) return;
+    if (!newEventTitle.trim() || !selectedDate) return;
+    if (!user) {
+      alert("User session not found. Please log in again.");
+      return;
+    }
     
     const colors = ['bg-sky-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
-    await createEvent({
+    const res = await createEvent({
       title: newEventTitle,
       time: selectedTime,
       date: selectedDate,
@@ -52,6 +56,11 @@ export default function CalendarPage() {
       is_meeting: isMeetingToggle,
       reminder_set: false
     });
+
+    if (res?.error) {
+      alert("Failed to save event: " + res.error.message);
+      return;
+    }
     
     setNewEventTitle('');
     setIsAdding(false);
