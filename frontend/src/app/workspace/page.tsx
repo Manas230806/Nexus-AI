@@ -14,10 +14,17 @@ export default function WorkspacePage() {
   const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !sessionStorage.getItem('nexusIntroPlayed');
+    }
+    return true;
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!showIntro) return;
+
     // Speak "Welcome Boss"
     try {
       if ('speechSynthesis' in window) {
@@ -62,6 +69,9 @@ export default function WorkspacePage() {
 
     const timer = setTimeout(() => {
       setShowIntro(false);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('nexusIntroPlayed', 'true');
+      }
     }, 1500);
     
     return () => {
@@ -70,7 +80,7 @@ export default function WorkspacePage() {
         window.speechSynthesis.cancel();
       }
     };
-  }, []);
+  }, [showIntro]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
