@@ -58,7 +58,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
            config: {
               iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:global.stun.twilio.com:3478' }
+                { urls: 'stun:global.stun.twilio.com:3478' },
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
               ]
            }
         });
@@ -66,11 +69,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         newPeer.on('call', async (call: any) => {
           const { data: callerData } = await supabase.from('users').select('name').eq('id', call.peer).single();
           setRemoteUser({ id: call.peer, name: callerData?.name || 'Unknown User' });
-          setIncomingCall(call);
           setCallType(call.metadata?.type || 'audio');
 
+          // Set up stream listener IMMEDIATELY when call arrives
+          call.on('stream', (rStream: any) => {
+            console.log('Received remote stream from caller');
+            setRemoteStream(rStream);
+          });
           call.on('close', forceCleanup);
           call.on('error', forceCleanup);
+
+          setIncomingCall(call);
         });
 
         newPeer.on('error', (err: any) => {
@@ -146,11 +155,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
       setLocalStream(stream);
 
-      incomingCall.answer(stream);
-      
-      incomingCall.on('stream', (rStream: any) => setRemoteStream(rStream));
+      // Stream listener is already set up when the call arrived.
+      // Set up additional listeners for close/error just in case.
       incomingCall.on('close', forceCleanup);
       incomingCall.on('error', forceCleanup);
+      
+      // Answer AFTER listeners are ready
+      incomingCall.answer(stream);
+      console.log('Answered call with local stream, tracks:', stream.getTracks().map((t: MediaStreamTrack) => t.kind + ':' + t.enabled));
       
       setActiveCall(incomingCall);
       setIncomingCall(null);
