@@ -338,39 +338,39 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         {incomingCall && !activeCall && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-black to-gray-900 p-8"
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-black to-gray-900 p-4 sm:p-8 safe-area-inset"
           >
             {/* Top spacer */}
-            <div className="pt-12" />
+            <div className="pt-8 sm:pt-12" />
 
             {/* Profile */}
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-3 sm:gap-4">
               <div className="relative">
-                <div className="h-28 w-28 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl shadow-emerald-500/20">
+                <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-4xl sm:text-5xl font-bold shadow-2xl shadow-emerald-500/20">
                   {getInitial(remoteUser?.name || '')}
                 </div>
                 <div className="absolute inset-0 rounded-full border-2 border-emerald-400 animate-ping opacity-30" />
                 <div className="absolute -inset-2 rounded-full border border-emerald-400/20 animate-pulse" />
               </div>
-              <h2 className="text-2xl font-bold text-white mt-2">{remoteUser?.name || 'Unknown'}</h2>
-              <p className="text-gray-400 text-sm font-medium tracking-wide uppercase">
+              <h2 className="text-xl sm:text-2xl font-bold text-white mt-2">{remoteUser?.name || 'Unknown'}</h2>
+              <p className="text-gray-400 text-xs sm:text-sm font-medium tracking-wide uppercase">
                 Incoming {callType === 'video' ? 'Video' : 'Voice'} Call
               </p>
             </div>
 
             {/* Buttons */}
-            <div className="flex items-center gap-16 pb-12">
+            <div className="flex items-center gap-12 sm:gap-16 pb-8 sm:pb-12">
               <div className="flex flex-col items-center gap-2">
-                <button onClick={rejectCall} className="h-16 w-16 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all">
-                  <Phone className="h-7 w-7 rotate-[135deg]" />
+                <button onClick={rejectCall} className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all">
+                  <Phone className="h-6 w-6 sm:h-7 sm:w-7 rotate-[135deg]" />
                 </button>
-                <span className="text-xs text-gray-400 font-medium">Decline</span>
+                <span className="text-[10px] sm:text-xs text-gray-400 font-medium">Decline</span>
               </div>
               <div className="flex flex-col items-center gap-2">
-                <button onClick={answerCall} className="h-16 w-16 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 active:scale-95 transition-all">
-                  {callType === 'video' ? <Video className="h-7 w-7" /> : <Phone className="h-7 w-7" />}
+                <button onClick={answerCall} className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 active:scale-95 transition-all">
+                  {callType === 'video' ? <Video className="h-6 w-6 sm:h-7 sm:w-7" /> : <Phone className="h-6 w-6 sm:h-7 sm:w-7" />}
                 </button>
-                <span className="text-xs text-gray-400 font-medium">Accept</span>
+                <span className="text-[10px] sm:text-xs text-gray-400 font-medium">Accept</span>
               </div>
             </div>
           </motion.div>
@@ -382,48 +382,48 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         {(isCalling || activeCall) && callType === 'audio' && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9998] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-black to-gray-900 p-8"
+            className="fixed inset-0 z-[9998] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-black to-gray-900 p-4 sm:p-8 safe-area-inset"
           >
             {/* Top spacer */}
-            <div className="pt-12" />
+            <div className="pt-8 sm:pt-12" />
 
             {/* Profile + status */}
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-3 sm:gap-4">
               <div className="relative">
-                <div className="h-28 w-28 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl shadow-violet-500/20">
+                <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-4xl sm:text-5xl font-bold shadow-2xl shadow-violet-500/20">
                   {getInitial(remoteUser?.name || '')}
                 </div>
                 {!isConnected && <div className="absolute inset-0 rounded-full border-2 border-violet-400 animate-ping opacity-30" />}
               </div>
-              <h2 className="text-2xl font-bold text-white mt-2">{remoteUser?.name || 'Unknown'}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mt-2">{remoteUser?.name || 'Unknown'}</h2>
               <p className="text-gray-400 text-sm font-medium tracking-wide">
                 {isConnected ? (
-                  <span className="text-emerald-400 text-lg font-mono">{timer}</span>
+                  <span className="text-emerald-400 text-base sm:text-lg font-mono">{timer}</span>
                 ) : (
-                  <span className="uppercase tracking-widest">Calling...</span>
+                  <span className="uppercase tracking-widest text-xs sm:text-sm">Calling...</span>
                 )}
               </p>
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-8 pb-12">
-              <div className="flex flex-col items-center gap-2">
-                <button onClick={toggleMute} className={`h-14 w-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-black' : 'bg-white/10 text-white'}`}>
-                  {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+            <div className="flex items-center gap-6 sm:gap-8 pb-8 sm:pb-12">
+              <div className="flex flex-col items-center gap-1.5">
+                <button onClick={toggleMute} className={`h-12 w-12 sm:h-14 sm:w-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-black' : 'bg-white/10 text-white'}`}>
+                  {isMuted ? <MicOff className="h-5 w-5 sm:h-6 sm:w-6" /> : <Mic className="h-5 w-5 sm:h-6 sm:w-6" />}
                 </button>
                 <span className="text-[10px] text-gray-500 uppercase">{isMuted ? 'Unmute' : 'Mute'}</span>
               </div>
 
-              <div className="flex flex-col items-center gap-2">
-                <button onClick={endCall} className="h-16 w-16 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all">
-                  <Phone className="h-7 w-7 rotate-[135deg]" />
+              <div className="flex flex-col items-center gap-1.5">
+                <button onClick={endCall} className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all">
+                  <Phone className="h-6 w-6 sm:h-7 sm:w-7 rotate-[135deg]" />
                 </button>
                 <span className="text-[10px] text-gray-500 uppercase">End</span>
               </div>
 
-              <div className="flex flex-col items-center gap-2">
-                <button onClick={() => setIsSpeakerOff(!isSpeakerOff)} className={`h-14 w-14 rounded-full flex items-center justify-center transition-all ${isSpeakerOff ? 'bg-white text-black' : 'bg-white/10 text-white'}`}>
-                  {isSpeakerOff ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+              <div className="flex flex-col items-center gap-1.5">
+                <button onClick={() => setIsSpeakerOff(!isSpeakerOff)} className={`h-12 w-12 sm:h-14 sm:w-14 rounded-full flex items-center justify-center transition-all ${isSpeakerOff ? 'bg-white text-black' : 'bg-white/10 text-white'}`}>
+                  {isSpeakerOff ? <VolumeX className="h-5 w-5 sm:h-6 sm:w-6" /> : <Volume2 className="h-5 w-5 sm:h-6 sm:w-6" />}
                 </button>
                 <span className="text-[10px] text-gray-500 uppercase">{isSpeakerOff ? 'Unmute' : 'Speaker'}</span>
               </div>
@@ -437,7 +437,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         {(isCalling || activeCall) && callType === 'video' && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9998] flex flex-col bg-black"
+            className="fixed inset-0 z-[9998] flex flex-col bg-black safe-area-inset"
           >
             {/* Remote video (fullscreen) */}
             {remoteStream ? (
@@ -449,22 +449,22 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             ) : (
               /* Waiting screen with profile */
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 via-black to-gray-900 z-0">
-                <div className="relative mb-6">
-                  <div className="h-28 w-28 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl">
+                <div className="relative mb-4 sm:mb-6">
+                  <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white text-4xl sm:text-5xl font-bold shadow-2xl">
                     {getInitial(remoteUser?.name || '')}
                   </div>
                   <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-30" />
                 </div>
-                <h2 className="text-2xl font-bold text-white">{remoteUser?.name || 'Unknown'}</h2>
-                <p className="text-gray-400 text-sm font-medium tracking-widest uppercase mt-2">Calling...</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-white">{remoteUser?.name || 'Unknown'}</h2>
+                <p className="text-gray-400 text-xs sm:text-sm font-medium tracking-widest uppercase mt-2">Calling...</p>
               </div>
             )}
 
             {/* Header overlay */}
-            <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-20 bg-gradient-to-b from-black/60 to-transparent">
+            <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between z-20 bg-gradient-to-b from-black/60 to-transparent">
               <div className="flex flex-col">
-                <span className="text-lg font-bold text-white drop-shadow-lg">{remoteUser?.name || 'Unknown'}</span>
-                <span className="text-sm font-medium drop-shadow-lg">
+                <span className="text-base sm:text-lg font-bold text-white drop-shadow-lg">{remoteUser?.name || 'Unknown'}</span>
+                <span className="text-xs sm:text-sm font-medium drop-shadow-lg">
                   {isConnected ? (
                     <span className="text-emerald-400 font-mono">{timer}</span>
                   ) : (
@@ -476,7 +476,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
             {/* Local video PiP */}
             {localStream && (
-              <div className="absolute top-20 right-4 w-28 h-40 md:w-36 md:h-52 bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 z-20">
+              <div className="absolute top-16 sm:top-20 right-3 sm:right-4 w-24 h-36 sm:w-36 sm:h-52 bg-gray-900 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 z-20">
                 <video 
                   autoPlay playsInline muted 
                   ref={(el) => { if (el && el.srcObject !== localStream) { el.srcObject = localStream; el.play().catch(() => {}); }}}
@@ -485,47 +485,47 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 />
                 {isVideoOff && (
                   <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                    <CameraOff className="h-8 w-8 text-gray-500" />
+                    <CameraOff className="h-6 w-6 sm:h-8 sm:w-8 text-gray-500" />
                   </div>
                 )}
               </div>
             )}
 
             {/* Controls */}
-            <div className="absolute bottom-0 left-0 right-0 p-8 flex justify-center items-center gap-6 z-20 bg-gradient-to-t from-black/70 to-transparent">
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-8 flex justify-center items-center gap-3 sm:gap-6 z-20 bg-gradient-to-t from-black/70 to-transparent">
               <div className="flex flex-col items-center gap-1">
-                <button onClick={toggleMute} className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-black' : 'bg-white/15 text-white backdrop-blur-md'}`}>
-                  {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                <button onClick={toggleMute} className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-black' : 'bg-white/15 text-white backdrop-blur-md'}`}>
+                  {isMuted ? <MicOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Mic className="h-4 w-4 sm:h-5 sm:w-5" />}
                 </button>
-                <span className="text-[10px] text-white/60">{isMuted ? 'Unmute' : 'Mute'}</span>
+                <span className="text-[9px] sm:text-[10px] text-white/60">{isMuted ? 'Unmute' : 'Mute'}</span>
               </div>
 
               <div className="flex flex-col items-center gap-1">
-                <button onClick={toggleVideo} className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${isVideoOff ? 'bg-white text-black' : 'bg-white/15 text-white backdrop-blur-md'}`}>
-                  {isVideoOff ? <CameraOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
+                <button onClick={toggleVideo} className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center transition-all ${isVideoOff ? 'bg-white text-black' : 'bg-white/15 text-white backdrop-blur-md'}`}>
+                  {isVideoOff ? <CameraOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Video className="h-4 w-4 sm:h-5 sm:w-5" />}
                 </button>
-                <span className="text-[10px] text-white/60">{isVideoOff ? 'Camera On' : 'Camera Off'}</span>
+                <span className="text-[9px] sm:text-[10px] text-white/60">Camera</span>
               </div>
 
               <div className="flex flex-col items-center gap-1">
-                <button onClick={flipCamera} className="h-12 w-12 rounded-full bg-white/15 text-white backdrop-blur-md flex items-center justify-center transition-all hover:bg-white/25">
-                  <RotateCcw className="h-5 w-5" />
+                <button onClick={flipCamera} className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/15 text-white backdrop-blur-md flex items-center justify-center transition-all hover:bg-white/25">
+                  <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
-                <span className="text-[10px] text-white/60">Flip</span>
+                <span className="text-[9px] sm:text-[10px] text-white/60">Flip</span>
               </div>
               
               <div className="flex flex-col items-center gap-1">
-                <button onClick={() => setIsSpeakerOff(!isSpeakerOff)} className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${isSpeakerOff ? 'bg-white text-black' : 'bg-white/15 text-white backdrop-blur-md'}`}>
-                  {isSpeakerOff ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                <button onClick={() => setIsSpeakerOff(!isSpeakerOff)} className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center transition-all ${isSpeakerOff ? 'bg-white text-black' : 'bg-white/15 text-white backdrop-blur-md'}`}>
+                  {isSpeakerOff ? <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" /> : <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />}
                 </button>
-                <span className="text-[10px] text-white/60">Speaker</span>
+                <span className="text-[9px] sm:text-[10px] text-white/60">Speaker</span>
               </div>
 
               <div className="flex flex-col items-center gap-1">
-                <button onClick={endCall} className="h-14 w-14 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all">
-                  <Phone className="h-6 w-6 rotate-[135deg]" />
+                <button onClick={endCall} className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all">
+                  <Phone className="h-5 w-5 sm:h-6 sm:w-6 rotate-[135deg]" />
                 </button>
-                <span className="text-[10px] text-white/60">End</span>
+                <span className="text-[9px] sm:text-[10px] text-white/60">End</span>
               </div>
             </div>
           </motion.div>
