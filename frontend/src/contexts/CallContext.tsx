@@ -130,6 +130,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const ringtoneRef = useRef<ReturnType<typeof createRingtone> | null>(null);
   const dialToneRef = useRef<ReturnType<typeof createDialTone> | null>(null);
+  const peerRef = useRef<any>(null);
 
   const isConnected = !!(activeCall && remoteStream);
   const timer = useCallTimer(isConnected);
@@ -149,6 +150,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         .subscribe();
 
       import('peerjs').then(({ default: PeerClass }) => {
+        if (peerRef.current) {
+          peerRef.current.destroy();
+          peerRef.current = null;
+        }
+
         const newPeer = new PeerClass(myId, {
            config: {
               iceServers: [
@@ -160,6 +166,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
               ]
            }
         });
+        
+        peerRef.current = newPeer;
         
         newPeer.on('call', async (call: any) => {
           const { data: callerData } = await supabase.from('users').select('name').eq('id', call.peer).single();
@@ -189,7 +197,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     initPeerAndSignaling();
     return () => {
-      if (peer) peer.destroy();
+      if (peerRef.current) {
+        peerRef.current.destroy();
+        peerRef.current = null;
+      }
       if (callChannel) supabase.removeChannel(callChannel);
     };
   }, []);
