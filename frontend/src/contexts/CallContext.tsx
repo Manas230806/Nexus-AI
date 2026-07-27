@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Phone, Video, Mic, MicOff, Volume2, VolumeX, CameraOff, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -79,7 +79,6 @@ function createDialTone(): { start: () => void; stop: () => void } {
         osc.start();
 
         let on = true;
-        // Ring pattern: 2s on, 4s off
         gain.gain.value = 0.08;
         interval = setInterval(() => {
           if (gain) gain.gain.value = on ? 0 : 0.08;
@@ -132,8 +131,39 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const dialToneRef = useRef<ReturnType<typeof createDialTone> | null>(null);
   const peerRef = useRef<any>(null);
 
+  // HTML Media element references for STABLE stream binding
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localAudioRef = useRef<HTMLAudioElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
+
   const isConnected = !!(activeCall && remoteStream);
   const timer = useCallTimer(isConnected);
+
+  // ─── Central Stream Binding Hook ──────────────────────────────────
+  useEffect(() => {
+    // Hidden audios (always active to guarantee voice transport)
+    if (localStream && localAudioRef.current && localAudioRef.current.srcObject !== localStream) {
+      localAudioRef.current.srcObject = localStream;
+      localAudioRef.current.play().catch(e => console.warn("local audio play blocked", e));
+    }
+    if (remoteStream && remoteAudioRef.current && remoteAudioRef.current.srcObject !== remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+      remoteAudioRef.current.play().catch(e => console.warn("remote audio play blocked", e));
+    }
+
+    // Videos (only assigned in video calls)
+    if (callType === 'video') {
+      if (localStream && localVideoRef.current && localVideoRef.current.srcObject !== localStream) {
+        localVideoRef.current.srcObject = localStream;
+        localVideoRef.current.play().catch(e => console.warn("local video play blocked", e));
+      }
+      if (remoteStream && remoteVideoRef.current && remoteVideoRef.current.srcObject !== remoteStream) {
+        remoteVideoRef.current.srcObject = remoteStream;
+        remoteVideoRef.current.play().catch(e => console.warn("remote video play blocked", e));
+      }
+    }
+  }, [localStream, remoteStream, callType, activeCall, isCalling]);
 
   // ─── Init PeerJS + Supabase Signaling ────────────────────────
   useEffect(() => {
@@ -177,7 +207,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           call.on('stream', (rStream: any) => {
             console.log('Received remote stream from caller');
             setRemoteStream(rStream);
-            // Stop ringtone when stream arrives (call connected)
             if (ringtoneRef.current) { ringtoneRef.current.stop(); ringtoneRef.current = null; }
           });
           call.on('close', forceCleanup);
@@ -221,6 +250,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
     setIsMuted(false);
     setIsVideoOff(false);
+
+    // Reset native references to prevent stale loops
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    if (localAudioRef.current) localAudioRef.current.srcObject = null;
+    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
   };
 
   const notifyRemoteEnd = async (targetId: string) => {
@@ -247,7 +282,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const call = peer.call(targetUserId, stream, { metadata: { type } });
       call.on('stream', (rStream: any) => {
         setRemoteStream(rStream);
-        // Stop dial tone when connected
         if (dialToneRef.current) { dialToneRef.current.stop(); dialToneRef.current = null; }
       });
       call.on('close', forceCleanup);
@@ -263,15 +297,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // ─── Answer Call ─────────────────────────────────────────────
   const answerCall = async () => {
     if (!incomingCall) return;
-    // Stop ringtone
     if (ringtoneRef.current) { ringtoneRef.current.stop(); ringtoneRef.current = null; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
       setLocalStream(stream);
 
-      // Register stream event listener in answerCall explicitly to avoid missing it
       incomingCall.on('stream', (rStream: any) => {
-        console.log('Received remote stream in answerCall callback');
         setRemoteStream(rStream);
       });
       incomingCall.on('close', forceCleanup);
@@ -331,23 +362,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     } catch(e) { console.warn('Flip camera failed', e); }
   };
 
-  // ─── Profile Initial ────────────────────────────────────────
   const getInitial = (name: string) => (name || '?')[0].toUpperCase();
 
-  // ═══════════════════════════════════════════════════════════════
-  //  R E N D E R
-  // ═══════════════════════════════════════════════════════════════
   return (
     <CallContext.Provider value={{ startCall, endCall, isCalling, activeCall }}>
       {children}
       
-      {/* ALWAYS render a hidden audio for remote stream - this guarantees voice works for ALL call types */}
-      {localStream && (
-         <audio muted autoPlay ref={(el) => { if (el && el.srcObject !== localStream) { el.srcObject = localStream; el.play().catch(() => {}); }}} className="absolute w-0 h-0 opacity-0 pointer-events-none" />
-      )}
-      {remoteStream && (
-         <audio autoPlay muted={isSpeakerOff} ref={(el) => { if (el && el.srcObject !== remoteStream) { el.srcObject = remoteStream; el.play().catch(() => {}); }}} className="absolute w-0 h-0 opacity-0 pointer-events-none" />
-      )}
+      {/* Hidden audio outputs - using absolute w-0 h-0 to bypass browser autoplay display block check */}
+      <audio muted autoPlay ref={localAudioRef} className="absolute w-0 h-0 opacity-0 pointer-events-none" />
+      <audio autoPlay muted={isSpeakerOff} ref={remoteAudioRef} className="absolute w-0 h-0 opacity-0 pointer-events-none" />
 
       {/* ─── INCOMING CALL (Instagram-style fullscreen) ─── */}
       <AnimatePresence>
@@ -356,7 +379,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[9999] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-black to-gray-900 p-4 sm:p-8 safe-area-inset"
           >
-            {/* Top spacer */}
             <div className="pt-8 sm:pt-12" />
 
             {/* Profile */}
@@ -393,22 +415,21 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      {/* ─── OUTGOING / ACTIVE VOICE CALL (Instagram-style fullscreen) ─── */}
+      {/* ─── OUTGOING / ACTIVE VOICE CALL ─── */}
       <AnimatePresence>
         {(isCalling || activeCall) && callType === 'audio' && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[9998] flex flex-col items-center justify-between bg-gradient-to-b from-gray-900 via-black to-gray-900 p-4 sm:p-8 safe-area-inset"
           >
-            {/* Debug HUD to instantly diagnose WebRTC issues */}
+            {/* Debug HUD */}
             <div className="absolute top-4 left-4 text-[10px] text-white/40 bg-black/40 p-2 rounded-lg font-mono text-left select-none max-w-[200px] border border-white/5 backdrop-blur-sm z-30">
               <div>Peer: {peer ? 'Connected' : 'Offline'}</div>
-              <div>Local: {localStream ? 'Ready' : 'None'} ({localStream?.getTracks().map(t => t.kind).join(',') || 'n/a'})</div>
-              <div>Remote: {remoteStream ? 'Active' : 'Waiting'} ({remoteStream?.getTracks().map(t => t.kind).join(',') || 'n/a'})</div>
+              <div>Local: {localStream ? 'Ready' : 'None'}</div>
+              <div>Remote: {remoteStream ? 'Active' : 'Waiting'}</div>
               <div>Tracks: A:{isMuted ? 'M' : 'E'}</div>
             </div>
 
-            {/* Top spacer */}
             <div className="pt-8 sm:pt-12" />
 
             {/* Profile + status */}
@@ -456,7 +477,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      {/* ─── OUTGOING / ACTIVE VIDEO CALL (Instagram-style fullscreen) ─── */}
+      {/* ─── OUTGOING / ACTIVE VIDEO CALL ─── */}
       <AnimatePresence>
         {(isCalling || activeCall) && callType === 'video' && (
           <motion.div 
@@ -464,20 +485,19 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             className="fixed inset-0 z-[9998] flex flex-col bg-black safe-area-inset"
           >
             {/* Remote video (fullscreen) */}
-            {remoteStream ? (
-              <video 
-                autoPlay playsInline muted={isSpeakerOff}
-                ref={(el) => { if (el && el.srcObject !== remoteStream) { el.srcObject = remoteStream; el.play().catch(() => {}); }}}
-                className="absolute inset-0 w-full h-full object-cover z-0" 
-              />
-            ) : (
-              /* Waiting screen with profile */
+            <video 
+              ref={remoteVideoRef}
+              autoPlay playsInline muted={isSpeakerOff}
+              className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 ${remoteStream ? 'opacity-100' : 'opacity-0'}`} 
+            />
+
+            {!remoteStream && (
+              /* Waiting screen */
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 via-black to-gray-900 z-0">
                 <div className="relative mb-4 sm:mb-6">
                   <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white text-4xl sm:text-5xl font-bold shadow-2xl">
                     {getInitial(remoteUser?.name || '')}
                   </div>
-                  <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-30" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-white">{remoteUser?.name || 'Unknown'}</h2>
                 <p className="text-gray-400 text-xs sm:text-sm font-medium tracking-widest uppercase mt-2">Calling...</p>
@@ -497,31 +517,29 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 </span>
               </div>
               
-              {/* Debug HUD to instantly diagnose WebRTC issues */}
+              {/* Debug HUD */}
               <div className="text-[10px] text-white/40 bg-black/40 p-2 rounded-lg font-mono text-left select-none max-w-[200px] border border-white/5 backdrop-blur-sm">
                 <div>Peer: {peer ? 'Connected' : 'Offline'}</div>
-                <div>Local: {localStream ? 'Ready' : 'None'} ({localStream?.getTracks().map(t => t.kind).join(',') || 'n/a'})</div>
-                <div>Remote: {remoteStream ? 'Active' : 'Waiting'} ({remoteStream?.getTracks().map(t => t.kind).join(',') || 'n/a'})</div>
+                <div>Local: {localStream ? 'Ready' : 'None'}</div>
+                <div>Remote: {remoteStream ? 'Active' : 'Waiting'}</div>
                 <div>Tracks: A:{isMuted ? 'M' : 'E'} V:{isVideoOff ? 'Off' : 'On'}</div>
               </div>
             </div>
 
             {/* Local video PiP */}
-            {localStream && (
-              <div className="absolute top-16 sm:top-20 right-3 sm:right-4 w-24 h-36 sm:w-36 sm:h-52 bg-gray-900 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 z-20">
-                <video 
-                  autoPlay playsInline muted 
-                  ref={(el) => { if (el && el.srcObject !== localStream) { el.srcObject = localStream; el.play().catch(() => {}); }}}
-                  className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : 'block'}`}
-                  style={{ transform: 'scaleX(-1)' }}
-                />
-                {isVideoOff && (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                    <CameraOff className="h-6 w-6 sm:h-8 sm:w-8 text-gray-500" />
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="absolute top-16 sm:top-20 right-3 sm:right-4 w-24 h-36 sm:w-36 sm:h-52 bg-gray-900 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 z-20">
+              <video 
+                ref={localVideoRef}
+                autoPlay playsInline muted 
+                className={`w-full h-full object-cover mirror ${isVideoOff || !localStream ? 'hidden' : 'block'}`}
+                style={{ transform: 'scaleX(-1)' }}
+              />
+              {(isVideoOff || !localStream) && (
+                <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                  <CameraOff className="h-6 w-6 sm:h-8 sm:w-8 text-gray-500" />
+                </div>
+              )}
+            </div>
 
             {/* Controls */}
             <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-8 flex justify-center items-center gap-3 sm:gap-6 z-20 bg-gradient-to-t from-black/70 to-transparent">
